@@ -11,7 +11,7 @@ description: Self-review a PR or working branch. Catches bugs, security, Arabic 
 
 1. Diff the branch against `main` (or target base)
 2. Run superpowers:verification-before-completion
-3. For UI changes → run arabic-rtl-checker + mena-mobile-check
+3. For UI changes → run arabic-rtl-checker + mena-mobile-check + compare rendered component against `docs/ux-reference/*.html` artifact for the BRD story
 4. Scan for secrets, hardcoded keys, `any` types
 5. Check BRD traceability (brd-traceability skill)
 6. Verify elegance-pause block in recent commits

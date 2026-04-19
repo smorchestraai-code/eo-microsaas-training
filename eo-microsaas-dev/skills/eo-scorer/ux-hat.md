@@ -8,6 +8,13 @@
 
 ## 8 Questions (each 1-10)
 
+> **Before scoring:** open `docs/ux-reference/*.html` in a browser side-by-side
+> with the rendered component. The artifacts are the UX ground truth from
+> EO-Brain Phase 5. If the component doesn't match the artifact's layout,
+> CTAs, or states → Q1 drops to 6 before any other question is asked.
+> If no artifacts exist in `docs/ux-reference/` → UX hat caps at 8.
+
+
 ### 1. Mobile viewport 375px works
 - ✅ 10: Tested on iPhone SE viewport (375x667). No horizontal scroll. All elements reachable by thumb.
 - ⚠️ 7: Most elements work, 1 overlap at 375px

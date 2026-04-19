@@ -18,5 +18,24 @@
     "arabic-rtl",
     "tdd",
     "self-improvement"
+  ],
+  "commands": [
+    "commands/eo-plan.md",
+    "commands/eo-code.md",
+    "commands/eo-review.md",
+    "commands/eo-score.md",
+    "commands/eo-bridge-gaps.md",
+    "commands/eo-ship.md",
+    "commands/eo-debug.md",
+    "commands/eo-retro.md"
+  ],
+  "skills": [
+    "skills/eo-scorer",
+    "skills/lessons-manager",
+    "skills/elegance-pause",
+    "skills/arabic-rtl-checker",
+    "skills/mena-mobile-check",
+    "skills/brd-traceability",
+    "skills/handover-bridge"
   ]
 }

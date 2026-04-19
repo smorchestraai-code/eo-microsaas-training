@@ -39,6 +39,10 @@ The student now has a folder `CodingProjects/{ProjectName}/` with loose files. T
     architecture-diagram.md
   gtm-assets/
     ... (MD blueprints)
+  ux-artifacts/                   ← from 4-eo-code-handover skill
+    product-demo.html (or .jsx)   ← interactive product mockup
+    onboarding-flow.html (or .jsx)← first-run UX mockup
+    admin-dashboard.html (or .jsx)← admin panel layout mockup
 ```
 
 ### Output (Claude Code–ready)
@@ -59,6 +63,11 @@ The student now has a folder `CodingProjects/{ProjectName}/` with loose files. T
     handovers/              ← NEW (empty dir)
   src/                      ← NEW (scaffolded per tech stack)
   tests/                    ← NEW (placeholder tests with @AC-N.N stubs)
+  docs/ux-reference/        ← NEW (ingested EO-Brain artifacts — ground truth for UI)
+    product-demo.html
+    onboarding-flow.html
+    admin-dashboard.html
+    ARTIFACT-INDEX.md       ← what each shows, which BRD stories it covers
   package.json              ← NEW (scaffolded)
   .gitignore                ← NEW
   .env.example              ← NEW (from tech-stack-decision.md)
@@ -73,10 +82,12 @@ Check all required files exist:
 - [ ] `project-brain/icp.md`
 - [ ] `project-brain/positioning.md`
 - [ ] `project-brain/brandvoice.md`
-- [ ] `architecture/brd.md` with ≥1 user story + numbered ACs
+- [ ] `architecture/brd.md` with ≥1 user story + numbered ACs (format `AC-N.N`)
 - [ ] `architecture/tech-stack-decision.md` naming specific libs/services
+- [ ] `ux-artifacts/` containing at least product-demo + onboarding-flow (admin-dashboard optional)
 
-If any missing → return to EO-Brain, don't bridge yet.
+If BRD or project-brain missing → return to EO-Brain, don't bridge yet.
+If ux-artifacts missing → bridge proceeds, but UX hat caps at 8 until artifacts land (they are the UX ground truth).
 
 ### Step 2 — Generate CLAUDE.md (150 lines max)
 Template at `templates/CLAUDE.md.template`. Fill in:
@@ -93,6 +104,30 @@ cd {ProjectName}
 git init
 git remote add origin git@github.com:{user}/{ProjectName}.git
 ```
+
+### Step 3b — Ingest UX artifacts
+Copy from EO-Brain:
+```bash
+mkdir -p docs/ux-reference
+cp ux-artifacts/*.html docs/ux-reference/ 2>/dev/null || true
+cp ux-artifacts/*.jsx  docs/ux-reference/ 2>/dev/null || true
+```
+Generate `docs/ux-reference/ARTIFACT-INDEX.md` mapping each artifact to the BRD story it visualizes:
+```markdown
+# UX Reference Artifacts
+
+These are the UX ground truth from EO-Brain Phase 5. Use them as the target
+for any UI work. `/eo-plan` reads them when planning visual features.
+`/eo-review` UX hat compares rendered components against these.
+
+| Artifact | Covers BRD stories | What to match |
+|----------|-------------------|---------------|
+| product-demo.html | Story 1, Story 2 | Core workflow layout, primary CTAs, empty states |
+| onboarding-flow.html | Story 3 | First-run screens, form fields, progress indicator |
+| admin-dashboard.html | Story 5 | Data table layout, filter positions, bulk actions |
+```
+
+This is non-negotiable: a component shipped that doesn't match the artifact → UX hat Q1 drops to 6.
 
 ### Step 4 — Scaffold src/ per tech stack
 If Next.js + Supabase (EO default):

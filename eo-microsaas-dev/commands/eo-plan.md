@@ -9,7 +9,7 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 
 ## What it does
 
-1. **Read context** — `architecture/brd.md`, `.claude/lessons.md`, relevant `project-brain/*.md`
+1. **Read context** — `architecture/brd.md`, `.claude/lessons.md`, relevant `project-brain/*.md`, and any matching artifact in `docs/ux-reference/` (the EO-Brain UX ground truth)
 2. **Identify ACs** — which BRD acceptance criteria this feature covers
 3. **Draft approach** — 3-5 bullets on implementation, in plan mode (no code yet)
 4. **Flag risks** — past lessons that apply, deps needed, MENA considerations
