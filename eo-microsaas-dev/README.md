@@ -71,4 +71,4 @@ eo-microsaas-dev/
 
 ## Version
 
-v1.0.0 — first release. Pilot with 2-3 students for 2 weeks before v1.1.
+v1.0.0 — first release. Takes students from vanilla Claude Code to a disciplined 7-pillar workflow with a 90+ composite ship gate.
