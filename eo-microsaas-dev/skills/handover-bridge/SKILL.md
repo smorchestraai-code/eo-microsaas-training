@@ -1,0 +1,189 @@
+# handover-bridge — EO-Brain → Claude Code Handoff
+
+**Purpose:** Convert EO-Brain Phase 5 (Code Handover) output into a Claude Code–ready project with BRD, tests, lessons, and claude.md — the first commit every student makes.
+
+**Pillar:** EO-specific — closes the gap between strategy (EO-Brain) and execution (Claude Code)
+**Time cost:** 15-20 minutes one-time per project.
+
+---
+
+## When to run
+
+**Once per project, at project birth.**
+
+The student has completed EO-Brain phases 0-5:
+- Phase 0: Scorecards (Triple Assessment, GTM Fitness)
+- Phase 1: ProjectBrain (ICP, positioning, voice, thesis)
+- Phase 2: GTM (motions, assets)
+- Phase 3: Newskills (team/skill map)
+- Phase 4: Architecture (tech stack, BRD, diagrams)
+- Phase 5: CodeHandover (what this skill consumes)
+
+The student now has a folder `CodingProjects/{ProjectName}/` with loose files. This skill transforms it into a proper dev-ready repo.
+
+---
+
+## The handoff contract
+
+### Input (from EO-Brain Phase 5)
+
+```
+{ProjectName}/
+  project-brain/
+    icp.md
+    positioning.md
+    brandvoice.md
+  architecture/
+    tech-stack-decision.md
+    brd.md
+    architecture-diagram.md
+  gtm-assets/
+    ... (MD blueprints)
+```
+
+### Output (Claude Code–ready)
+
+```
+{ProjectName}/
+  .claude/
+    lessons.md              ← NEW (empty, ready to accrue)
+    settings.json           ← NEW (SessionStart hook loads lessons)
+  .git/                     ← NEW (init + first commit)
+  CLAUDE.md                 ← NEW (150-line student-calibrated)
+  README.md                 ← NEW (project overview)
+  architecture/
+    brd.md                  ← copied from EO-Brain
+    ... (other EO-Brain docs)
+  docs/
+    qa-scores/              ← NEW (empty dir for score history)
+    handovers/              ← NEW (empty dir)
+  src/                      ← NEW (scaffolded per tech stack)
+  tests/                    ← NEW (placeholder tests with @AC-N.N stubs)
+  package.json              ← NEW (scaffolded)
+  .gitignore                ← NEW
+  .env.example              ← NEW (from tech-stack-decision.md)
+```
+
+---
+
+## The 10-step handoff
+
+### Step 1 — Verify EO-Brain output is complete
+Check all required files exist:
+- [ ] `project-brain/icp.md`
+- [ ] `project-brain/positioning.md`
+- [ ] `project-brain/brandvoice.md`
+- [ ] `architecture/brd.md` with ≥1 user story + numbered ACs
+- [ ] `architecture/tech-stack-decision.md` naming specific libs/services
+
+If any missing → return to EO-Brain, don't bridge yet.
+
+### Step 2 — Generate CLAUDE.md (150 lines max)
+Template at `templates/CLAUDE.md.template`. Fill in:
+- Project name, domain, ICP (from project-brain)
+- Tech stack (from architecture)
+- Env vars needed (from architecture)
+- Design tokens (colors, fonts) from brandvoice
+- MENA flag (yes/no → triggers arabic-rtl-checker + mena-mobile-check)
+- Build sequence (standard 6 phases)
+
+### Step 3 — Initialize git
+```bash
+cd {ProjectName}
+git init
+git remote add origin git@github.com:{user}/{ProjectName}.git
+```
+
+### Step 4 — Scaffold src/ per tech stack
+If Next.js + Supabase (EO default):
+```bash
+npx create-next-app@latest src --typescript --tailwind --app --no-src-dir
+```
+Move generated files into place, don't nest.
+
+### Step 5 — Generate placeholder tests from BRD
+For each `AC-N.N` in brd.md, generate:
+```ts
+// tests/{story-slug}.test.ts
+describe.skip('{story title}', () => {
+  it('{AC-N.N description} @AC-N.N', async () => {
+    // TODO: implement
+  });
+});
+```
+
+### Step 6 — Seed .claude/lessons.md
+```markdown
+# Lessons — {ProjectName}
+
+Last pruned: {today}
+
+## Active lessons
+
+None yet. First lesson will be captured on the first score < 90 or first bug.
+
+## Archived lessons
+
+None.
+```
+
+### Step 7 — Install SessionStart hook
+Copy `templates/settings.json.template` → `.claude/settings.json` and `templates/lessons.md.template` → `.claude/lessons.md`. Both ship with this plugin.
+
+### Step 8 — Generate .env.example
+Extract every env var referenced in `tech-stack-decision.md`. Write to `.env.example` with placeholders, never real values.
+
+### Step 9 — First commit
+```bash
+git add .
+git commit -m "feat: initial handoff from EO-Brain
+
+- CLAUDE.md calibrated for {project}
+- BRD with {N} acceptance criteria
+- Placeholder tests tagged @AC-N.N
+- .claude/lessons.md seeded
+"
+```
+
+### Step 10 — Print next-step banner
+```
+✅ Handoff complete. You're Claude Code ready.
+
+Next steps:
+  1. cd {ProjectName}
+  2. Open in Claude Code: claude
+  3. Run: /eo-plan
+  4. Start sprint 1 from architecture/technical-roadmap.md
+
+Your first score gate: 90 composite or no ship.
+```
+
+---
+
+## Quality checks (before declaring handoff done)
+
+- [ ] `CLAUDE.md` ≤ 150 lines (Boris discipline)
+- [ ] BRD has ≥3 ACs per user story
+- [ ] Every AC has a `.skip` test with matching tag
+- [ ] `.gitignore` excludes `.env.local`, `node_modules/`, `.next/`
+- [ ] `.env.example` has NO real secrets
+- [ ] `docs/qa-scores/` exists (empty)
+- [ ] First commit lands on `main` or `dev`
+
+---
+
+## Integration
+
+- **Runs after:** EO-Brain Phase 5 complete
+- **Runs before:** Any `/eo-*` command
+- **Triggers:** Nothing (one-shot at project birth)
+- **Consumed by:** every subsequent skill (lessons, scorer, traceability all expect this structure)
+
+---
+
+## Anti-patterns
+
+- **Running without BRD:** Don't bridge a project that doesn't have a BRD. Return to EO-Brain.
+- **Skipping placeholder tests:** The `.skip` stubs are the contract. Without them, brd-traceability has nothing to check.
+- **Copying smorch-dev-scoring patterns:** This plugin is standalone. Don't pull from smorch-brain.
+- **CLAUDE.md bloat:** If you're over 150 lines, remove generic advice. Keep only project-specific rules.

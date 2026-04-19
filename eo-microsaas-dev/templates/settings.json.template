@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy this file to .claude/settings.json in your project root. Auto-loads lessons.md at every session start.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "test -f .claude/lessons.md && echo '--- Active lessons ---' && cat .claude/lessons.md || mkdir -p .claude && cp {PLUGIN_PATH}/templates/lessons.md.template .claude/lessons.md && echo 'Created .claude/lessons.md'"
+      }
+    ]
+  }
+}

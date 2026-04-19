@@ -107,9 +107,25 @@ if [ ! -d ~/.claude/skills/superpowers ]; then
   git clone --depth 1 https://github.com/obra/superpowers.git ~/.claude/skills/superpowers
 fi
 
-# Note: smorch-dev-scoring is SMOrchestra-internal — we install a student-friendly shim instead.
+# Install the eo-microsaas-dev plugin (7-pillar workflow, 5-hat scoring, MENA checks)
 echo
-echo "  • Installing EO quality scoring guide (student-adapted)..."
+echo "  • Installing eo-microsaas-dev plugin..."
+PLAYBOOK_DIR_EARLY="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_SRC="$PLAYBOOK_DIR_EARLY/eo-microsaas-dev"
+PLUGIN_DEST="$HOME/.claude/plugins/eo-microsaas-dev"
+if [ -d "$PLUGIN_SRC" ]; then
+  mkdir -p "$HOME/.claude/plugins"
+  rm -rf "$PLUGIN_DEST"
+  cp -R "$PLUGIN_SRC" "$PLUGIN_DEST"
+  echo "  ✓ eo-microsaas-dev installed at $PLUGIN_DEST"
+  echo "    Commands: /eo-plan /eo-code /eo-review /eo-score /eo-bridge-gaps /eo-ship /eo-debug /eo-retro"
+else
+  echo "  ✗ eo-microsaas-dev not found at $PLUGIN_SRC — skipping"
+fi
+
+# Legacy eo-quality-guide shim (kept as fallback for students without the plugin)
+echo
+echo "  • Installing legacy quality guide (fallback)..."
 mkdir -p ~/.claude/skills/eo-quality-guide
 cat > ~/.claude/skills/eo-quality-guide/SKILL.md << 'EOSKILL'
 # EO Quality Guide — Student Edition
@@ -214,6 +230,7 @@ echo
 echo "  ~/.claude/skills/gstack:        $([ -d ~/.claude/skills/gstack ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/skills/superpowers:   $([ -d ~/.claude/skills/superpowers ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/skills/eo-quality-guide: $([ -d ~/.claude/skills/eo-quality-guide ] && echo '✓ installed' || echo '✗ MISSING')"
+echo "  ~/.claude/plugins/eo-microsaas-dev: $([ -d ~/.claude/plugins/eo-microsaas-dev ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/CLAUDE.md:            $([ -f ~/.claude/CLAUDE.md ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/settings.json:        $([ -f ~/.claude/settings.json ] && echo '✓ installed' || echo '✗ MISSING')"
 echo

@@ -1,0 +1,9 @@
+date,branch,pr,product,architecture,engineering,qa,ux,composite,decision,notes
+# Schema:
+# date: YYYY-MM-DD
+# branch: git branch name
+# pr: PR number or "local" if pre-PR
+# product/architecture/engineering/qa/ux: 1-10 integer
+# composite: sum × 2 (10-100)
+# decision: ship | bridge-gaps | reject
+# notes: free text, one line, escape commas with quotes

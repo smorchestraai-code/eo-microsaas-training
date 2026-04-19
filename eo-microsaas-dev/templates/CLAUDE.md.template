@@ -1,0 +1,103 @@
+# CLAUDE.md — {PROJECT_NAME}
+
+## What this is
+{ONE_LINE_DESCRIPTION}
+
+ICP: {ICP_SUMMARY}
+Domain: {DOMAIN}
+Stage: {STAGE}
+
+## Tech stack
+- Frontend: {FRONTEND}
+- Backend: {BACKEND}
+- Database: {DB}
+- Auth: {AUTH}
+- AI: {AI}
+- Hosting: {HOSTING}
+
+## Project structure
+```
+architecture/brd.md          ← source of truth for features
+project-brain/               ← ICP, positioning, voice
+src/                         ← application code
+tests/                       ← @AC-N.N tagged tests
+docs/qa-scores/              ← score history + trend.csv
+docs/retros/                 ← sprint retros
+.claude/lessons.md           ← self-improvement loop (private)
+```
+
+## The 7 pillars (non-negotiable)
+
+1. **Plan before code** — run `/eo-plan` before writing any feature
+2. **Subagents for parallel work** — dispatch when files are independent
+3. **Lessons compound** — append to `.claude/lessons.md` after every correction
+4. **Verify before done** — `/eo-review` before declaring complete
+5. **Demand elegance** — elegance-pause block in every non-trivial PR
+6. **Autonomous bug fixing** — `/eo-debug` finds root cause + regression test
+7. **Score + ship** — 90+ composite or don't ship
+
+## Daily command chain
+
+| Step | Command | Gate |
+|------|---------|------|
+| Plan | `/eo-plan {feature}` | Approval |
+| Code | `/eo-code` | Tests pass |
+| Review | `/eo-review` | No 🔴 items |
+| Score | `/eo-score` | 90+ composite |
+| Fix gaps | `/eo-bridge-gaps` | Lowest hat ≥8 |
+| Ship | `/eo-ship` | Health check 200 |
+| Retro | `/eo-retro` | Weekly |
+| Debug | `/eo-debug {bug}` | On-demand |
+
+## Quality gate
+- No PR without 90+ composite score (saved to `docs/qa-scores/`)
+- No hat below 8
+- Elegance pause block in commit description
+- BRD traceability 100% for "done" ACs
+
+## MENA rules (applies if ICP is MENA)
+- Arabic-first UI, `dir="rtl"` respected
+- Fonts: Cairo (headers), Tajawal (body)
+- Mobile 375px tested before ≥8 UX hat
+- Dates DD/MM/YYYY, weekend Fri/Sat
+- Currency: AED/SAR/QAR (KWD uses 3 decimals)
+- No alcohol/pork/revealing imagery
+- Ramadan-aware scheduling
+
+## Words forbidden in UI
+leverage, synergy, ecosystem, holistic, digital transformation, innovative, cutting-edge, world-class, best-in-class
+
+## Voice
+Direct. Specific. Numbers over claims. Trust-first, pitch-second.
+
+## Env vars
+See `.env.example`. Never commit `.env.local`.
+
+## Deploy
+- Server: {SERVER}
+- Path: {SERVER_PATH}
+- PM2 process: {PM2_NAME}
+- Command: `git pull && npm ci && npm run build && pm2 reload {PM2_NAME}`
+- Never edit directly on server. Always local → GitHub → server pull.
+
+## Git discipline
+- Branches: `main` (prod), `dev` (integration), `feat/*` (features)
+- Conventional commits: feat/fix/docs/chore
+- Every PR: elegance pause block, BRD ACs referenced, score report attached
+- Never commit: `.env.local`, `node_modules/`, `.next/`, secrets
+
+## Session bootstrap
+Lessons at `.claude/lessons.md` auto-load via SessionStart hook. Read them before every plan.
+
+## When stuck
+1. Check `.claude/lessons.md` — have I hit this before?
+2. Check `docs/qa-scores/trend.csv` — which hat keeps failing?
+3. Run `/eo-debug` with specific error
+4. Ask in EO MicroSaaS community Slack
+
+## Non-negotiable
+- No code without a BRD
+- No ship without 90+ score
+- No bug fix without regression test
+- No new dep without bundle-size comment
+- No UI PR without mobile + Arabic screenshots (if MENA)
