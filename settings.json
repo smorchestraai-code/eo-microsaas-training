@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(jq -r '.tool_input.command' 2>/dev/null); if echo \"$CMD\" | grep -qiE '(rm [-]rf /|rm [-]rf ~|git push [-][-]force|git push [-]f |git reset [-][-]hard|drop table|drop database|truncate table)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BLOCKED: Destructive command. Double-check what you intend.\"}}'; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'; fi",
+            "statusMessage": "Checking for destructive commands..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CONTENT=$(jq -r '.tool_input.content // .tool_input.new_string // empty' 2>/dev/null); if [ -n \"$CONTENT\" ] && echo \"$CONTENT\" | grep -qiE '(s[k]-[a-zA-Z0-9]{20,}|A[K]I[A][A-Z0-9]{16}|[g]h[p]_[a-zA-Z0-9]{36}|[g]h[o]_[a-zA-Z0-9]{36}|x[o]x[b]-[a-zA-Z0-9]+|s[u]pabase_service_role_key|S[U]PABASE_SERVICE_KEY=|O[P]ENAI_API_KEY=|A[N]THROPIC_API_KEY=|S[T]RIPE_SECRET|-----BEGIN[^-]*PRIVATE KEY-----)'; then FILE=$(jq -r '.tool_input.file_path // empty' 2>/dev/null); if ! echo \"$FILE\" | grep -qiE '(\\.env\\.example|\\.env\\.template|CLAUDE\\.md|settings\\.json|README\\.md)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BLOCKED: Looks like a real API key. Use a .env file.\"}}'; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'; fi; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'; fi",
+            "statusMessage": "Scanning for secrets..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "BRANCH=$(git branch --show-current 2>/dev/null || echo none); REMOTE=$(git remote get-url origin 2>/dev/null || echo none); echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"SessionStart\\\",\\\"additionalContext\\\":\\\"EO STUDENT SESSION \u2014 Branch: $BRANCH | Remote: $REMOTE | Workflow in ~/.claude/CLAUDE.md. Hooks: destructive-blocker, secret-scanner. 5-question scorecard before every PR (90+ to ship).\\\"}}\""
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash"
+    ]
+  },
+  "skipDangerousModePermissionPrompt": true
+}
