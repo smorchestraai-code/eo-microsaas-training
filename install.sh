@@ -107,21 +107,21 @@ if [ ! -d ~/.claude/skills/superpowers ]; then
   git clone --depth 1 https://github.com/obra/superpowers.git ~/.claude/skills/superpowers
 fi
 
-# Install the eo-microsaas-dev plugin (7-pillar workflow, 5-hat scoring, MENA checks)
+# Install the eo-microsaas-dev plugin via Claude Code marketplace (proper registration path)
 echo
-echo "  • Installing eo-microsaas-dev plugin..."
-PLAYBOOK_DIR_EARLY="$(cd "$(dirname "$0")" && pwd)"
-PLUGIN_SRC="$PLAYBOOK_DIR_EARLY/eo-microsaas-dev"
-PLUGIN_DEST="$HOME/.claude/plugins/eo-microsaas-dev"
-if [ -d "$PLUGIN_SRC" ]; then
-  mkdir -p "$HOME/.claude/plugins"
-  rm -rf "$PLUGIN_DEST"
-  cp -R "$PLUGIN_SRC" "$PLUGIN_DEST"
-  echo "  ✓ eo-microsaas-dev installed at $PLUGIN_DEST"
-  echo "    Commands: /eo-plan /eo-code /eo-review /eo-score /eo-bridge-gaps /eo-ship /eo-debug /eo-retro"
+echo "  • Registering eo-microsaas-training marketplace + installing eo-microsaas-dev..."
+
+# Add marketplace (one-time, idempotent)
+if claude plugin marketplace list 2>/dev/null | grep -q "eo-microsaas-training"; then
+  echo "    marketplace eo-microsaas-training already registered — refreshing"
+  claude plugin marketplace update eo-microsaas-training 2>&1 | tail -1
 else
-  echo "  ✗ eo-microsaas-dev not found at $PLUGIN_SRC — skipping"
+  claude plugin marketplace add smorchestraai-code/eo-microsaas-training 2>&1 | tail -1
 fi
+
+# Install the plugin
+claude plugin install eo-microsaas-dev@eo-microsaas-training 2>&1 | tail -1
+echo "    Commands available after Claude Code restart: /eo-plan /eo-code /eo-review /eo-score /eo-bridge-gaps /eo-ship /eo-debug /eo-retro"
 
 # Legacy eo-quality-guide shim (kept as fallback for students without the plugin)
 echo
@@ -230,7 +230,7 @@ echo
 echo "  ~/.claude/skills/gstack:        $([ -d ~/.claude/skills/gstack ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/skills/superpowers:   $([ -d ~/.claude/skills/superpowers ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/skills/eo-quality-guide: $([ -d ~/.claude/skills/eo-quality-guide ] && echo '✓ installed' || echo '✗ MISSING')"
-echo "  ~/.claude/plugins/eo-microsaas-dev: $([ -d ~/.claude/plugins/eo-microsaas-dev ] && echo '✓ installed' || echo '✗ MISSING')"
+echo "  eo-microsaas-dev plugin: $(claude plugin list 2>/dev/null | grep -q 'eo-microsaas-dev@eo-microsaas-training' && echo '✓ installed (via marketplace)' || echo '✗ MISSING — run claude plugin install eo-microsaas-dev@eo-microsaas-training')"
 echo "  ~/.claude/CLAUDE.md:            $([ -f ~/.claude/CLAUDE.md ] && echo '✓ installed' || echo '✗ MISSING')"
 echo "  ~/.claude/settings.json:        $([ -f ~/.claude/settings.json ] && echo '✓ installed' || echo '✗ MISSING')"
 echo

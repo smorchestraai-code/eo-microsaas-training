@@ -1,9 +1,9 @@
 {
   "name": "eo-microsaas-dev",
   "version": "1.0.0",
-  "description": "EO MicroSaaS Dev plugin — 7-pillar development workflow for students. Plan, code, review, score (5-hat), debug, ship, retro. Self-improvement loop via lessons.md. MENA-specific checks (Arabic RTL, mobile, BRD traceability from EO-Brain).",
+  "description": "EO MicroSaaS Dev plugin for students — 7-pillar development workflow. 8 slash commands (plan, code, review, score, bridge-gaps, ship, debug, retro) + 7 skills. 5-hat scoring with student calibration (90+ ship gate). Self-improvement loop via .claude/lessons.md. MENA-specific checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Calibrated for solo founder reality (5-10 min scoring vs 30 min enterprise tools).",
   "author": {
-    "name": "SMOrchestra.ai",
+    "name": "SMOrchestra.ai / Entrepreneurs Oasis MENA",
     "email": "smorchestra.ai@gmail.com"
   },
   "homepage": "https://github.com/smorchestraai-code/eo-microsaas-training",
@@ -12,30 +12,11 @@
   "keywords": [
     "claude-code",
     "eo-microsaas",
-    "quality-gates",
+    "students",
     "5-hat-scoring",
     "mena",
     "arabic-rtl",
     "tdd",
     "self-improvement"
-  ],
-  "commands": [
-    "commands/eo-plan.md",
-    "commands/eo-code.md",
-    "commands/eo-review.md",
-    "commands/eo-score.md",
-    "commands/eo-bridge-gaps.md",
-    "commands/eo-ship.md",
-    "commands/eo-debug.md",
-    "commands/eo-retro.md"
-  ],
-  "skills": [
-    "skills/eo-scorer",
-    "skills/lessons-manager",
-    "skills/elegance-pause",
-    "skills/arabic-rtl-checker",
-    "skills/mena-mobile-check",
-    "skills/brd-traceability",
-    "skills/handover-bridge"
   ]
 }
