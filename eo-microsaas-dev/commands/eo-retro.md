@@ -64,3 +64,11 @@ description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacin
 - QA discipline: add empty-state requirement to qa-hat Q2
 - 1 PR to refactor the 3 files that shipped without the check
 ```
+
+## After retro — update tracker
+
+Retro is sprint-scoped, not story-scoped. Update `_dev-progress.md` top-of-file metadata only:
+- `Last updated` = today; `Last command` = `/eo-retro`
+- Append one line under a `## Retros` section with a link to the retro file (e.g., `- 2026-04-21 — docs/retros/2026-04-21.md (avg composite 87, focus: QA)`)
+
+Do not touch individual story rows — their state reflects code, not reflection.

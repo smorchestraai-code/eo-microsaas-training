@@ -1,0 +1,44 @@
+# Dev Progress — {PROJECT_NAME}
+
+> Tracker for `/eo-guide`. Filesystem is the source of truth; this file is a view.
+> Every `/eo-*` command writes here at end-of-run. `/eo-guide` reconciles drift.
+
+Last updated: {DATE}
+Current sprint: {SPRINT_NUMBER}
+Last command: none
+
+## Stories
+
+| # | Story | Status | Plan | Tests | Score | Shipped | Notes |
+|---|-------|--------|------|-------|-------|---------|-------|
+| 1 | {STORY_1_TITLE} | ⬜ not started | — | — | — | — | — |
+| 2 | {STORY_2_TITLE} | ⬜ not started | — | — | — | — | — |
+| 3 | {STORY_3_TITLE} | ⬜ not started | — | — | — | — | — |
+
+## Status legend
+
+- ⬜ not started — no plan file yet
+- 📝 planned — `docs/plans/story-N-*.md` exists, tests still `.skip`
+- 🔨 coding — tests being written/passed
+- 🧪 scoring — tests pass, awaiting `/eo-score`
+- 🩹 bridging gaps — score 80–89, `/eo-bridge-gaps` running
+- ✅ shipped — merged to main + deployed
+- ⚠️ inconsistent — state checks failed, see `/eo-guide` diagnostic
+
+## Invariants
+
+- Score < 80 → status cannot be `shipped`
+- `shipped` → must have both score ≥ 90 row AND deploy log entry
+- `coding` without a plan file = impossible; `/eo-guide` flags as inconsistent
+
+## MVP cadence (reference)
+
+Sprint = 1 story → live URL. MVP = 4–7 sprints. Don't conflate them.
+
+| Sprint | Weeks | Story target |
+|--------|-------|--------------|
+| 1 | Week 1 | Story 1 (+ Story 2 if simple) |
+| 2 | Week 2 | Stories 3–4 |
+| 3 | Week 3 | Stories 5–6 |
+| 4 | Week 4 | Story 7 + full QA |
+| 5 | Week 5 | Soft launch + 15 listings |

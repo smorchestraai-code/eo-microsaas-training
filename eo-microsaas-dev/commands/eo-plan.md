@@ -54,3 +54,12 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 
 **Ready to start TDD?** (y/n)
 ```
+
+## After approval — update tracker
+
+Before exiting plan mode, update `_dev-progress.md`:
+- Find the row for the target story (or add it if missing).
+- Set `Status` = `📝 planned`, `Plan` = `✓`, `Notes` = plan filename.
+- Set top-level `Last updated` to today, `Last command` to `/eo-plan {story}`.
+
+Filesystem is truth — `/eo-guide` will reconcile if you slip.

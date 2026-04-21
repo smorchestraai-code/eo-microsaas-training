@@ -64,3 +64,12 @@ description: Fix the lowest-scoring hat when composite is 80-89. Turns a "blocke
 ### Re-score prediction
 Applying A/A → hat lifts from 6 → 8.5 (ship-ready)
 ```
+
+## After bridging — update tracker
+
+Update `_dev-progress.md` row for this story:
+- `Status` = `🩹 bridging gaps` (still fixing) or `🧪 scoring` (fixes applied, ready for `/eo-score` re-run)
+- `Notes` = which hat was bridged + 1-line change summary (e.g., `QA 6→8.5: added empty-state tests`)
+- `Last updated` = today; `Last command` = `/eo-bridge-gaps {hat}`
+
+Don't set `Status` = `✅ shipped` here — only `/eo-ship` does that, after a clean `/eo-score` ≥90.

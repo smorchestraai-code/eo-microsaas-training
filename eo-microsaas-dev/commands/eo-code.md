@@ -38,3 +38,10 @@ description: Execute a planned feature via TDD. Writes test first, then minimal 
 - All targeted ACs have passing tests
 - Elegance pause block in commit message
 - No `.skip` tests in the committed range
+
+## After green — update tracker
+
+Update `_dev-progress.md` row for this story:
+- `Status` = `🔨 coding` (still coding) or `🧪 scoring` (all ACs green, time to `/eo-score`)
+- `Tests` = `{passing}/{total} passing`
+- `Last updated` = today; `Last command` = `/eo-code {arg}`

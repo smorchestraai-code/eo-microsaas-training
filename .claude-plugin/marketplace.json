@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "EO MicroSaaS training marketplace — student-facing Claude Code plugin for the 7-pillar development workflow. Pair with EO-Brain (business brain) for full idea → shipped MVP pipeline.",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "eo-microsaas-dev",
       "source": "./eo-microsaas-dev",
-      "description": "7-pillar development workflow for EO students. 8 slash commands (/eo-plan, /eo-code, /eo-review, /eo-score, /eo-bridge-gaps, /eo-ship, /eo-debug, /eo-retro) + 7 skills. 5-hat scoring with student calibration (90+ ship gate). MENA checks (Arabic RTL, mobile 375px), BRD traceability, elegance pause, lessons.md self-improvement. Calibrated for solo founder reality."
+      "description": "7-pillar development workflow for EO students. 9 slash commands (/eo-guide, /eo-status, /eo-plan, /eo-code, /eo-review, /eo-score, /eo-bridge-gaps, /eo-ship, /eo-debug, /eo-retro) + 8 skills. 5-hat scoring with student calibration (90+ ship gate). Cross-session resumability via /eo-guide. MENA checks (Arabic RTL, mobile 375px), BRD traceability, elegance pause, lessons.md self-improvement. Dev-progress tracker dual-writer pattern. Native Windows PowerShell hooks. Calibrated for solo founder reality."
     }
   ]
 }

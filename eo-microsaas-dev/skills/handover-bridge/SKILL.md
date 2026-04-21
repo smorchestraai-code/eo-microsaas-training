@@ -53,8 +53,12 @@ The student now has a folder `CodingProjects/{ProjectName}/` with loose files. T
     lessons.md              ← NEW (empty, ready to accrue)
     settings.json           ← NEW (SessionStart hook loads lessons)
   .git/                     ← NEW (init + first commit)
-  CLAUDE.md                 ← NEW (150-line student-calibrated)
+  .github/
+    workflows/
+      ci.yml                ← NEW (PR quality gate)
+  CLAUDE.md                 ← NEW (150-line student-calibrated, links to global)
   README.md                 ← NEW (project overview)
+  _dev-progress.md          ← NEW (story tracker read by /eo-guide)
   architecture/
     brd.md                  ← copied from EO-Brain
     ... (other EO-Brain docs)
@@ -75,7 +79,21 @@ The student now has a folder `CodingProjects/{ProjectName}/` with loose files. T
 
 ---
 
-## The 10-step handoff
+## The 11-step handoff
+
+### Step 0 — Precondition: global playbook must be installed
+
+Before anything else, verify the student ran `install.sh`:
+
+```bash
+test -f ~/.claude/CLAUDE.md && test -f ~/.claude/settings.json || {
+  echo "STOP: Global playbook missing (~/.claude/CLAUDE.md or ~/.claude/settings.json)."
+  echo "Re-run install.sh from the EO playbook bundle before continuing."
+  exit 1
+}
+```
+
+This catches the silent-drift failure where a student installs the plugin without the global playbook. Every downstream step assumes global hooks, lessons format, and voice rules are already active.
 
 ### Step 1 — Verify EO-Brain output is complete
 Check all required files exist:
@@ -97,6 +115,8 @@ Template at `templates/CLAUDE.md.template`. Fill in:
 - Design tokens (colors, fonts) from brandvoice
 - MENA flag (yes/no → triggers arabic-rtl-checker + mena-mobile-check)
 - Build sequence (standard 6 phases)
+
+Include at the bottom: a precedence note — "Global playbook is at `~/.claude/CLAUDE.md`. Project CLAUDE.md overrides global when they conflict. If a rule is missing here, fall through to global."
 
 ### Step 3 — Initialize git
 ```bash
@@ -147,6 +167,17 @@ describe.skip('{story title}', () => {
 });
 ```
 
+### Step 5b — Install CI gate
+Copy `templates/ci.yml.template` → `.github/workflows/ci.yml`. The shipped template runs on every PR:
+- `actions/checkout@v4` + `actions/setup-node@v4` (Node 22, npm cache)
+- `npm ci` (fail if lockfile drift)
+- `npm run lint`
+- `npm run test` (soft fail until 100% AC coverage — uses `|| echo` on early projects)
+- `npm run build`
+- `npm audit --audit-level=high` (fail on high+ CVEs)
+
+Without this, the first PR silently skips quality gates and students don't learn CI discipline. Mandatory.
+
 ### Step 6 — Seed .claude/lessons.md
 ```markdown
 # Lessons — {ProjectName}
@@ -161,6 +192,9 @@ None yet. First lesson will be captured on the first score < 90 or first bug.
 
 None.
 ```
+
+### Step 6b — Seed `_dev-progress.md`
+Copy `templates/_dev-progress.md.template` → `_dev-progress.md` at project root. Fill one row per BRD story from `architecture/brd.md`; all statuses start `⬜ not started`. This is the tracker `/eo-guide` reads on every session to answer "where am I, what's next?" The filesystem is the source of truth; this file is a view that `/eo-guide` reconciles.
 
 ### Step 7 — Install SessionStart hook
 Copy `templates/settings.json.template` → `.claude/settings.json` and `templates/lessons.md.template` → `.claude/lessons.md`. Both ship with this plugin.
@@ -195,15 +229,19 @@ Your first score gate: 90 composite or no ship.
 
 ---
 
-## Quality checks (before declaring handoff done)
+## Quality checks (before declaring handoff done) — HANDOVER READINESS 9/9
 
-- [ ] `CLAUDE.md` ≤ 150 lines (Boris discipline)
+- [ ] Global playbook precondition passed (Step 0)
+- [ ] `CLAUDE.md` ≤ 150 lines (Boris discipline) with global-precedence note
 - [ ] BRD has ≥3 ACs per user story
-- [ ] Every AC has a `.skip` test with matching tag
+- [ ] Every AC has a `.skip` test with matching `@AC-N.N` tag
+- [ ] `.github/workflows/ci.yml` present and valid YAML (Step 5b)
+- [ ] `_dev-progress.md` present with one row per BRD story (Step 6b)
 - [ ] `.gitignore` excludes `.env.local`, `node_modules/`, `.next/`
 - [ ] `.env.example` has NO real secrets
-- [ ] `docs/qa-scores/` exists (empty)
 - [ ] First commit lands on `main` or `dev`
+
+All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing to student.
 
 ---
 
