@@ -7,7 +7,7 @@ set -e
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  EO MicroSaaS Student — Claude Code Bootstrap              ║"
-echo "║  Version: 1.0 · 2026-04-19                                 ║"
+echo "║  Version: 1.1 · 2026-04-21                                 ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo
 
@@ -121,7 +121,7 @@ fi
 
 # Install the plugin
 claude plugin install eo-microsaas-dev@eo-microsaas-training 2>&1 | tail -1
-echo "    Commands available after Claude Code restart: /eo-plan /eo-code /eo-review /eo-score /eo-bridge-gaps /eo-ship /eo-debug /eo-retro"
+echo "    Commands available after Claude Code restart: /eo-guide /eo-status /eo-plan /eo-code /eo-review /eo-score /eo-bridge-gaps /eo-ship /eo-debug /eo-retro"
 
 # Legacy eo-quality-guide shim (kept as fallback for students without the plugin)
 echo

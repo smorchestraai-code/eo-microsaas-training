@@ -16,6 +16,19 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-04-21
+
+### Added
+- **`eo-microsaas-dev` plugin 1.1.0** — adds `/eo-guide` + `/eo-status` for cross-session resumability, hardens `handover-bridge` to HANDOVER READINESS 9/9 (Step 0 precondition + Step 5b CI gate + Step 6b tracker seed), ships `_dev-progress.md` dual-writer pattern across 6 story-state commands, adds native Windows PowerShell hooks (destructive-blocker.ps1 + secret-scanner.ps1) backed by `hooks-shared/rules.json` single-source-of-truth blocklist. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** `.claude-plugin/marketplace.json` metadata.version → 1.1.0. Plugin description updated to reflect the 2 new commands.
+- **`install.sh`:** banner updated to 1.1, command list now includes `/eo-guide` + `/eo-status`.
+- **Pinned-install URL** in `README.md` now points at `v1.1.0` tag.
+
+### Changed
+- No breaking changes. Existing v1.0.0 students run `claude plugin update eo-microsaas-dev@eo-microsaas-training`; fresh installs via `install.sh` automatically pick up 1.1.0 via marketplace.
+
+---
+
 ## [1.0.0] — 2026-04-19
 
 ### Added

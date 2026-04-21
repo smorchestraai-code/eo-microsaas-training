@@ -1,6 +1,6 @@
 # EO MicroSaaS Training
 
-> **Version:** 1.0.0 (2026-04-19)
+> **Version:** 1.1.0 (2026-04-21)
 > **Status:** Active — accepting new content (courses, examples, SOPs)
 > **License:** MIT
 > **Repo:** https://github.com/smorchestraai-code/eo-microsaas-training
@@ -168,10 +168,10 @@ Monthly is enough. Check `CHANGELOG.md` in the repo for what's new.
 Main branch = latest stable. Tagged releases are frozen versions you can pin to:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/smorchestraai-code/eo-microsaas-training/v1.0.0/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/smorchestraai-code/eo-microsaas-training/v1.1.0/install.sh | bash
 ```
 
-`v1.0.0` today · Semantic versioning going forward.
+`v1.1.0` today · Semantic versioning going forward.
 
 ---
 
