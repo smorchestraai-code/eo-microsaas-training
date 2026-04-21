@@ -59,3 +59,12 @@ description: Run 5-hat composite score. Non-negotiable gate — 90+ to ship.
 
 Run /eo-ship when ready.
 ```
+
+## After scoring — update tracker
+
+Update `_dev-progress.md` row for this story:
+- `Score` = composite (e.g., `90`)
+- `Status` = `✅ shipped` only if decision was Ship AND `/eo-ship` has been run; else `🧪 scoring` (90+ waiting to ship) or `🩹 bridging gaps` (80–89) or `⚠️ blocked` (<80)
+- `Last updated` = today; `Last command` = `/eo-score`
+
+Never set `Status` = `shipped` from this command — only `/eo-ship` moves it there.

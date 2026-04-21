@@ -1,0 +1,40 @@
+{
+  "_comment": "Single source of truth for hook blocklists. Consumed by bash hooks (settings.json) and PowerShell hooks (templates/hooks-windows/*.ps1). Patterns intentionally use character-class splits (e.g. s[k]-, A[K]IA, O[P]ENAI) so this file itself doesn't trip the secret-scanner. Regex semantics are unchanged — [x] matches x.",
+  "version": "1.1.0",
+  "destructive": {
+    "description": "Irreversible shell commands to block. Case-insensitive.",
+    "patterns": [
+      "rm [-]rf /",
+      "rm [-]rf ~",
+      "git push [-][-]force",
+      "git push [-]f ",
+      "git reset [-][-]hard",
+      "drop table",
+      "drop database",
+      "truncate table"
+    ]
+  },
+  "secrets": {
+    "description": "Real API keys / credentials. Block write/edit unless target file is in allow-list. Each regex is written with [x] splits to prevent the hook that scans this file from matching itself.",
+    "patterns": [
+      {"name": "openai-sk",                     "regex": "s[k]-[a-zA-Z0-9]{20,}"},
+      {"name": "aws-access-key",                "regex": "A[K]I[A][A-Z0-9]{16}"},
+      {"name": "github-pat",                    "regex": "[g]h[p]_[a-zA-Z0-9]{36}"},
+      {"name": "github-oauth",                  "regex": "[g]h[o]_[a-zA-Z0-9]{36}"},
+      {"name": "slack-bot",                     "regex": "x[o]x[b]-[a-zA-Z0-9]+"},
+      {"name": "supabase-service-role",         "regex": "s[u]pabase_service_role_key"},
+      {"name": "supabase-service-key-envline",  "regex": "S[U]PABASE_SERVICE_KEY="},
+      {"name": "openai-envline",                "regex": "O[P]ENAI_API_KEY="},
+      {"name": "anthropic-envline",             "regex": "A[N]THROPIC_API_KEY="},
+      {"name": "stripe-secret",                 "regex": "S[T]RIPE_SECRET"},
+      {"name": "pem-private-key",               "regex": "-----BEGIN[^-]*PRIVATE KEY-----"}
+    ],
+    "allow_list_files": [
+      ".env.example",
+      ".env.template",
+      "CLAUDE.md",
+      "settings.json",
+      "README.md"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "eo-microsaas-dev",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "EO MicroSaaS Dev plugin for students — 7-pillar development workflow. 8 slash commands (plan, code, review, score, bridge-gaps, ship, debug, retro) + 7 skills. 5-hat scoring with student calibration (90+ ship gate). Self-improvement loop via .claude/lessons.md. MENA-specific checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Calibrated for solo founder reality (5-10 min scoring vs 30 min enterprise tools).",
   "author": {
     "name": "SMOrchestra.ai / Entrepreneurs Oasis MENA",

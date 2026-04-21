@@ -60,3 +60,13 @@ description: Ship to production. Final guardrails before merge + deploy.
 
 Trend.csv updated.
 ```
+
+## After ship — update tracker
+
+Update `_dev-progress.md` row for this story:
+- `Status` = `✅ shipped` (only `/eo-ship` can set this)
+- `Shipped` = today's date (YYYY-MM-DD)
+- `Notes` = commit sha + deploy target (e.g., `a1b2c3d → vercel prod`)
+- `Last updated` = today; `Last command` = `/eo-ship`
+
+If the deploy or health-check failed → DO NOT set `✅ shipped`. Set `Status` = `⚠️ blocked` and `Notes` = rollback reason. `/eo-guide` will route back to debug.
