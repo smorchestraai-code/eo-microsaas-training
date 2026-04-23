@@ -1,12 +1,12 @@
 ---
 name: eo-guide
-description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Routes to /eo-dev-start for fresh projects and /eo-dev-repair for partially-bootstrapped projects. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
-version: "1.2"
+description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Routes to /eo-dev-start for fresh projects, /eo-dev-repair for partial bootstraps, and /eo-github for local-only projects ready to promote. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
+version: "1.3"
 ---
 
 # eo-guide — The Build-Phase Orchestrator
 
-**Version:** 1.2 (2026-04-21 — adds bootstrap-aware routing to /eo-dev-start + /eo-dev-repair)
+**Version:** 1.3 (2026-04-23 — adds local-only-bootstrapped state routing to /eo-github)
 **Pillar:** EO-specific — cross-chat continuity.
 **Purpose:** When a student opens a fresh Claude Code chat in a project — mid-sprint, 3 days after last session, or from a new machine — they type `/eo-guide` and get: where they are, what's next, how long it takes. Zero context-paste. The whole point is resumability.
 
@@ -68,6 +68,8 @@ Collect these signals in one pass:
 | Retros | `ls docs/retros/*.md` | Sprint close signals |
 | Lessons | `wc -l .claude/lessons.md` | Under "Active lessons" section |
 | CI | `test -f .github/workflows/ci.yml` | Quality gate installed |
+| Git repo present | `git rev-parse --show-toplevel 2>/dev/null` | Bootstrap happened with git (`github_intent ≠ local-only`) |
+| Git remote origin | `git config --get remote.origin.url 2>/dev/null` | GitHub is mounted — `/eo-ship` will push there |
 
 Write observed values into a temp state object — this is what drives the next step.
 
@@ -79,15 +81,20 @@ Evaluate in order; first match wins:
 |-----------|-------|--------------|
 | No `CLAUDE.md` AND no `architecture/brd.md` AND no `.claude/lessons.md` (truly empty) | `pre-bootstrap` | `/eo-dev-start` — reads EO-Brain, plan-mode gate, invokes handover-bridge. Supersedes the old "copy-paste Section 5 prompt" flow. |
 | At least one but not all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, `.env.example`, `docs/ux-reference/` (partial state) | `bootstrap-incomplete` | `/eo-dev-repair` — triages missing pieces, silently repairs regeneratable files, refuses and routes when core artifacts (BRD, architecture, project-brain) are missing. |
+| Bootstrap complete (all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`) **AND** no `.git/` repo (student picked option 3 `local-only` in `/eo-dev-start`) | `local-only-bootstrapped` | Keep building locally. When your MVP works end-to-end (at least 1 story ⬜→✅, 1 green `/eo-score` ≥ 90), run `/eo-github` to push up. Until then, no git, no network. |
+| Bootstrap complete **AND** `.git/` present **AND** `git config --get remote.origin.url` returns empty (student was going to mount later or aborted an `/eo-github` run) | `git-local-no-remote` | Run `/eo-github` to create or point to a GitHub repo. All other `/eo-*` commands still work but `/eo-ship` will refuse until a remote exists. |
 | No plan file for any ⬜ story | `ready-to-plan` | `/eo-plan Story-{N}-{slug}` for the first ⬜ story |
 | Plan exists, all tests `.skip` for target story | `ready-to-code` | `/eo-code` |
 | Tests pass for target story, no score file today | `ready-to-score` | `/eo-score` |
 | Latest score < 80 | `blocked-low-score` | Revisit plan; lesson capture required; do NOT ship |
 | Latest score 80–89 | `bridging-gaps` | `/eo-bridge-gaps` then re-score |
-| Latest score ≥ 90, no `ship:` commit for this story | `ready-to-ship` | `/eo-ship` |
+| Latest score ≥ 90, no `ship:` commit for this story, **AND** remote origin set | `ready-to-ship` | `/eo-ship` |
+| Latest score ≥ 90, no `ship:` commit for this story, **AND** no remote origin | `ready-to-ship-but-no-remote` | Run `/eo-github` first (create or point-existing). `/eo-ship` needs a remote to push to. |
 | `ship:` commit exists, no retro for this sprint | `ready-to-retro` | `/eo-retro` |
 | All BRD stories shipped + retros done | `project-complete` | Soft launch + 15 listings |
 | None of the above → inconsistent | `inconsistent` | Fall through to Mode 3 diagnostic |
+
+Note the ordering: bootstrap-completeness checks run before remote checks, and remote checks run before sprint-loop checks. A student with a fully-bootstrapped scaffold who chose `local-only` cleanly lands in `local-only-bootstrapped` and is told exactly what to do.
 
 ### Step 5 — Safety rail (inconsistent state)
 
@@ -155,6 +162,9 @@ No coaching. Just the table:
 EO Build Dashboard — {PROJECT_NAME}
 ====================================
 Bootstrap:   ✅ (CLAUDE.md, CI, tracker all present)
+Git:         ✅ local  |  🔗 origin: git@github.com:{owner}/{repo}.git
+             ✅ local  |  ⚠️ no remote — run /eo-github
+             🚫 no git (local-only bootstrap — run /eo-github when MVP ready)
 BRD stories: 5 total
 Story 1:     ✅ shipped — score 94 — 2026-04-19
 Story 2:     🔨 coding — 3/5 tests passing — sprint 2
@@ -200,6 +210,7 @@ To keep this promise:
 | Skill | Relationship |
 |-------|--------------|
 | `handover-bridge` | Produces the files `/eo-guide` reads. If bootstrap never ran, `/eo-guide` says so. |
+| `eo-github` | `/eo-guide` detects git + remote presence and routes students to `/eo-github` for `local-only-bootstrapped`, `git-local-no-remote`, and `ready-to-ship-but-no-remote` states. Never invokes the skill directly — students always run it explicitly. |
 | `eo-scorer` | Writes score files that `/eo-guide` parses for phase detection. |
 | `brd-traceability` | Defines the `@AC-N.N` tag that `/eo-guide` uses to count tests per story. |
 | `lessons-manager` | Surfaces relevant lessons when the state shows repeated failures on the same story. |

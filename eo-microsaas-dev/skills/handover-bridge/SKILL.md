@@ -118,12 +118,38 @@ Template at `templates/CLAUDE.md.template`. Fill in:
 
 Include at the bottom: a precedence note — "Global playbook is at `~/.claude/CLAUDE.md`. Project CLAUDE.md overrides global when they conflict. If a rule is missing here, fall through to global."
 
-### Step 3 — Initialize git
+### Step 3 — Initialize git (conditional on `github_intent`)
+
+`handover-bridge` accepts a `github_intent` parameter from `/eo-dev-start` Step 9b. Values:
+
+| `github_intent` | Git init? | Remote? | First commit? |
+|-----------------|-----------|---------|---------------|
+| `create` | Yes | No (added later by `eo-github`) | Yes (see Step 9) |
+| `point-existing` | Yes | No (added later by `eo-github`) | Yes |
+| `guided` | Yes | No (added later by `eo-github`) | Yes |
+| `already-wired` | Skip if `.git` exists; otherwise yes | Already present — do not touch | Yes |
+| `local-only` | **No** | No | No — all scaffold stays uncommitted until student decides |
+
 ```bash
-cd {ProjectName}
-git init
-git remote add origin git@github.com:{user}/{ProjectName}.git
+case "$github_intent" in
+  create|point-existing|guided)
+    if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+      cd {ProjectName}
+      git init -b main
+    fi
+    ;;
+  already-wired)
+    # Remote is already set — leave remote alone.
+    # If somehow no .git exists despite `already-wired` (shouldn't happen), init.
+    git rev-parse --show-toplevel >/dev/null 2>&1 || git init -b main
+    ;;
+  local-only)
+    # Do not initialize git. Skip the first-commit step too.
+    ;;
+esac
 ```
+
+**Never** `git remote add origin` in this skill. That is `eo-github`'s job — it runs after handover-bridge completes when `github_intent ≠ local-only`. This keeps remote wiring plan-mode gated and MCP-verified.
 
 ### Step 3b — Ingest UX artifacts
 Copy from EO-Brain:
@@ -202,17 +228,25 @@ Copy `templates/settings.json.template` → `.claude/settings.json` and `templat
 ### Step 8 — Generate .env.example
 Extract every env var referenced in `tech-stack-decision.md`. Write to `.env.example` with placeholders, never real values.
 
-### Step 9 — First commit
+### Step 9 — First commit (conditional on `github_intent`)
+
+Skip entirely when `github_intent=local-only` (there's no git repo to commit to).
+
+For every other value:
 ```bash
-git add .
-git commit -m "feat: initial handoff from EO-Brain
+if git rev-parse --show-toplevel >/dev/null 2>&1; then
+  git add .
+  git commit -m "feat: initial handoff from EO-Brain
 
 - CLAUDE.md calibrated for {project}
 - BRD with {N} acceptance criteria
 - Placeholder tests tagged @AC-N.N
 - .claude/lessons.md seeded
 "
+fi
 ```
+
+**Never push.** If the student chose `create` / `point-existing` / `guided`, `eo-github` will be invoked next (by `/eo-dev-start` Step 10b) and it owns the push. If the student chose `already-wired`, `/eo-ship` handles the first release push.
 
 ### Step 10 — Print next-step banner
 ```
@@ -239,9 +273,11 @@ Your first score gate: 90 composite or no ship.
 - [ ] `_dev-progress.md` present with one row per BRD story (Step 6b)
 - [ ] `.gitignore` excludes `.env.local`, `node_modules/`, `.next/`
 - [ ] `.env.example` has NO real secrets
-- [ ] First commit lands on `main` or `dev`
+- [ ] First commit lands on `main` or `dev` **(skipped when `github_intent=local-only` — counts as pass)**
 
 All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing to student.
+
+**Note:** for `github_intent=local-only` runs, the "first commit" check passes by virtue of the contract (no git repo → no commit required). All other 8 checks still apply.
 
 ---
 
@@ -260,3 +296,6 @@ All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing
 - **Skipping placeholder tests:** The `.skip` stubs are the contract. Without them, brd-traceability has nothing to check.
 - **Copying smorch-dev-scoring patterns:** This plugin is standalone. Don't pull from smorch-brain.
 - **CLAUDE.md bloat:** If you're over 150 lines, remove generic advice. Keep only project-specific rules.
+- **Adding a remote here:** `git remote add origin` is `eo-github`'s exclusive responsibility. Never set it in handover-bridge — that bypasses the plan-mode gate.
+- **Committing when `github_intent=local-only`:** No git repo exists. Creating one without the student asking undermines the "continue locally" choice.
+- **Pushing anything:** handover-bridge makes the first **local** commit only. Network operations belong to `eo-github` and `/eo-ship`.

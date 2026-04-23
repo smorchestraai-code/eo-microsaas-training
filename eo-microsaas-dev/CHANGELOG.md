@@ -5,6 +5,44 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.3.0] — 2026-04-23
+
+### Added
+- **`/eo-github` command + `eo-github` skill** — the only plugin surface allowed to create, wire, or audit a GitHub remote. Four modes:
+  - **Mode 1 `create`** — creates a new private repo under the authenticated user, applies best-practices settings (squash-merge only, `has_wiki`/`has_projects`/`has_discussions` off, `delete_branch_on_merge` on, EO topics + labels), wires origin, pushes the first commit.
+  - **Mode 2 `point-existing`** — validates an already-created empty repo is writable and empty, shows a settings-drift diff vs the best-practices matrix, wires origin, pushes. Offers `skip-settings` to keep the repo's current config.
+  - **Mode 3 `guided`** — A/B/C menu for students who said "I don't know" in `/eo-dev-start`'s 4-option question. Routes into Mode 1 or Mode 2.
+  - **Mode 4 `audit`** — reads current repo state via MCP, computes drift vs the best-practices matrix, prints a per-item `y/n` drift report. Runs automatically after first `/eo-ship` green CI to offer branch-protection activation.
+- **MCP-only contract** — the skill requires `mcp__github__*` tools. No `gh` CLI fallback. Refuses cleanly with install remediation when MCP is missing. This keeps "the skill works" identical to "the skill works the way the student expects."
+- **Plan-aware feature offering** — detects GitHub plan (free/pro/team/enterprise) once per session. Never offers plan-locked features (required reviewers, CODEOWNERS enforcement) on plans that would silently ignore them. Students on free plans see only features their plan can honor.
+- **Branch strategy picked from collaborator count** — solo (≤1) → trunk-only (`main` only); team (≥2) → dual-branch (`main` production + `dev` integration). Plan preview shows the choice; student can override in the approval step.
+- **Post-first-CI branch protection** — protection rules can't require status checks that have never run. The skill defers protection to after first `/eo-ship` green CI, then offers activation via `/eo-github audit`.
+- **Naming rules enforced at slug sanitization** — lowercase-only, ASCII+hyphen, 3-60 chars, reserved-name rejection (`api`, `www`, `admin`, etc.), `eo-` prefix auto-applied when `mena_flag=true`. No silent renames — if a name fails validation, the student is prompted.
+- **Issue labels preset** — `bug`, `enhancement`, `blocked`, `needs-info`, `mena`, `score-gap` (skips any already present; never renames existing labels).
+- **Failure rollback with manifest** — every write tracked; mid-flight failure → roll back only writes from this invocation. Never auto-deletes a GitHub repo (destructive — student confirms manually).
+
+### Changed
+- **`/eo-dev-start` Step 9b** — adds the **one-question-four-options** GitHub intent gate. When no origin is mounted, asks: `1. Create new repo` / `2. Point to existing repo` / `3. Continue locally` / `4. I don't know`. Detects `mcp__github__*` MCP presence. Routes 1/2/4+MCP to `eo-github` after `handover-bridge`; option 3 or 4-without-MCP stays fully local (no git init, no remote). Step 10b wires the post-bridge skill invocation.
+- **`handover-bridge` Step 3 + Step 9** — `git init` and first commit are now conditional on `github_intent`. For `local-only`, no git repo is initialized and no commit is made — students who chose option 3 stay fully local. For every other value, git init happens locally but `git remote add origin` is never run (`eo-github` owns that). `git push` is never invoked here.
+- **`eo-guide` v1.3** — adds three new phase states:
+  - `local-only-bootstrapped` — bootstrap complete, no `.git/` → "Keep building locally. When your MVP works end-to-end, run `/eo-github`."
+  - `git-local-no-remote` — git initialized, no `remote.origin.url` → routes to `/eo-github`.
+  - `ready-to-ship-but-no-remote` — score ≥ 90 but no remote → routes to `/eo-github` before `/eo-ship`.
+  Mode 2 `/eo-status` dashboard now shows a Git row (local/remote/no-git). Two new filesystem signals scanned: `.git/` presence and `remote.origin.url`.
+- **Plugin description + README** — command count 12→13, skill count 10→11. File layout updated.
+
+### Architecture notes
+- **Isolation of remote operations:** `/eo-dev-start` is cheap to retry; students can trial the bootstrap three times before "this is the one" without polluting GitHub. All remote writes live in one skill (`eo-github`) with one contract (MCP + plan-mode preview).
+- **Single source of truth for GitHub status:** `git config --get remote.origin.url`. No new config file introduced — `.claude/project.json` was considered and rejected as unnecessary complexity.
+- **The skill is the admin, the student is the CEO:** admin decisions (settings, branches, labels, topics) are made by the skill from best practices; every decision is previewed and approved before writing. Audit mode lets the student correct drift later without re-bootstrapping.
+
+### Migration notes
+- **Existing v1.2.0 students with already-wired remotes:** no change. `/eo-dev-start` detects the origin and skips the 4-option question; the existing URL is preserved.
+- **Existing v1.2.0 students with local git but no remote:** `/eo-guide` will now surface `git-local-no-remote` and route to `/eo-github`. Run it when ready to push.
+- **No breaking changes** for any command or skill. The 4-option question is additive — students with already-wired remotes never see it.
+
+---
+
 ## [1.2.0] — 2026-04-23
 
 ### Added

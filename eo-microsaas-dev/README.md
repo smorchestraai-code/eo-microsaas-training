@@ -4,11 +4,11 @@ Claude Code plugin for EO MicroSaaS students. Built for solo founders shipping A
 
 ## What you get
 
-- **12 slash commands** — `/eo-dev-start` (bootstrap), `/eo-dev-repair` (surgical repair), `/eo-guide` + `/eo-status` (cross-session resumability), `/eo-plan`, `/eo-code`, `/eo-review`, `/eo-score`, `/eo-bridge-gaps`, `/eo-ship`, `/eo-debug`, `/eo-retro`
-- **10 skills** — `eo-dev-start` (one-shot bootstrap from EO-Brain phases 0-4), `eo-dev-repair` (silent-repair-safe vs refuse-and-route triage), `eo-guide` (phase detector + next-command router), 5-hat scoring (calibrated, honest), lessons manager, elegance pause, Arabic RTL checker, MENA mobile check, BRD traceability, handover bridge
+- **13 slash commands** — `/eo-dev-start` (bootstrap), `/eo-dev-repair` (surgical repair), `/eo-github` (GitHub admin — create / point-existing / guided / audit), `/eo-guide` + `/eo-status` (cross-session resumability), `/eo-plan`, `/eo-code`, `/eo-review`, `/eo-score`, `/eo-bridge-gaps`, `/eo-ship`, `/eo-debug`, `/eo-retro`
+- **11 skills** — `eo-dev-start` (one-shot bootstrap from EO-Brain phases 0-4, asks one 4-option question for GitHub intent), `eo-dev-repair` (silent-repair-safe vs refuse-and-route triage), `eo-github` (MCP-only GitHub admin, plan-aware, trunk-vs-dual branch strategy, best-practices settings, post-first-CI branch protection), `eo-guide` (phase detector + next-command router with local-only-bootstrapped routing), 5-hat scoring (calibrated, honest), lessons manager, elegance pause, Arabic RTL checker, MENA mobile check, BRD traceability, handover bridge
 - **150-line CLAUDE.md template** — Boris-discipline, project-specific, no bloat
 - **Score gate: 90+ composite or don't ship** — non-negotiable
-- **Zero-friction start** — type `/eo-dev-start` in a fresh project. Plan mode previews every action before writing.
+- **Zero-friction start** — type `/eo-dev-start` in a fresh project. Plan mode previews every action before writing. GitHub only touched after explicit 4-option choice.
 
 ## The 7 pillars
 
@@ -44,9 +44,10 @@ eo-microsaas-dev/
   README.md                       ← this file
   CHANGELOG.md
   commands/
-    eo-dev-start.md               ← bootstrap (v1.2.0)
+    eo-dev-start.md               ← bootstrap (v1.2.0; v1.3.0 adds 4-option GitHub Q)
     eo-dev-repair.md              ← surgical repair (v1.2.0)
-    eo-guide.md                   ← phase detector + next-step router
+    eo-github.md                  ← GitHub admin (v1.3.0 — create/point/guided/audit)
+    eo-guide.md                   ← phase detector + next-step router (v1.3.0 adds local-only routing)
     eo-status.md                  ← compact dashboard
     eo-plan.md
     eo-code.md
@@ -57,9 +58,10 @@ eo-microsaas-dev/
     eo-debug.md
     eo-retro.md
   skills/
-    eo-dev-start/SKILL.md         ← one-shot bootstrap from EO-Brain (v1.2.0)
+    eo-dev-start/SKILL.md         ← one-shot bootstrap + 4-option GitHub intent (v1.2.0 → v1.3.0)
     eo-dev-repair/SKILL.md        ← classify-then-repair-or-refuse (v1.2.0)
-    eo-guide/SKILL.md             ← cross-chat continuity
+    eo-github/SKILL.md            ← GitHub admin, MCP-only, plan-aware (v1.3.0)
+    eo-guide/SKILL.md              ← cross-chat continuity (v1.3.0 adds local-only + no-remote states)
     eo-scorer/                    ← 5-hat scoring
       SKILL.md
       product-hat.md
@@ -73,7 +75,7 @@ eo-microsaas-dev/
     arabic-rtl-checker/SKILL.md
     mena-mobile-check/SKILL.md
     brd-traceability/SKILL.md
-    handover-bridge/SKILL.md
+    handover-bridge/SKILL.md      ← git init + first commit now conditional on github_intent (v1.3.0)
   templates/
     CLAUDE.md.template
     ci.yml.template
@@ -82,7 +84,9 @@ eo-microsaas-dev/
 
 ## Version
 
-**v1.2.0** (2026-04-23) — adds `/eo-dev-start` (one-shot bootstrap from EO-Brain phases 0-4, plan-mode gated, worktree-aware) and `/eo-dev-repair` (classifies every missing piece as silent-repair-safe or refuse-and-route — rebuilds regeneratable files silently, refuses when core artifacts like BRD or architecture are missing). Updates `/eo-guide` to route `pre-bootstrap` → `/eo-dev-start` and `bootstrap-incomplete` → `/eo-dev-repair`. Simplifies the 5-CodeHandover entry point from a 75-line copy-paste prompt to one command. See `CHANGELOG.md`.
+**v1.3.0** (2026-04-23) — adds `/eo-github` skill + command (four modes: `create`, `point-existing`, `guided`, `audit`). `mcp__github__*` MCP-only — no `gh` CLI fallback. Plan-aware: free/pro/team/enterprise detection omits plan-locked features so students never see settings GitHub would silently ignore. Branch strategy picked from collaborator count (solo → trunk-only; ≥2 → main + dev). Best-practices settings applied on creation: private, squash-merge only, `has_wiki`/`has_projects`/`has_discussions` off, `delete_branch_on_merge` on, EO topics and labels. Branch protection deferred to post-first-CI automation. `/eo-dev-start` now asks one 4-option question when no origin exists (create / point-existing / local-only / I-don't-know) and routes accordingly. `handover-bridge` makes `git init` + first commit conditional on `github_intent`. `/eo-guide` detects `local-only-bootstrapped`, `git-local-no-remote`, and `ready-to-ship-but-no-remote` states and routes to `/eo-github`. See `CHANGELOG.md`.
+
+v1.2.0 (2026-04-23) — adds `/eo-dev-start` (one-shot bootstrap from EO-Brain phases 0-4, plan-mode gated, worktree-aware) and `/eo-dev-repair` (classifies every missing piece as silent-repair-safe or refuse-and-route — rebuilds regeneratable files silently, refuses when core artifacts like BRD or architecture are missing). Updates `/eo-guide` to route `pre-bootstrap` → `/eo-dev-start` and `bootstrap-incomplete` → `/eo-dev-repair`. Simplifies the 5-CodeHandover entry point from a 75-line copy-paste prompt to one command. See `CHANGELOG.md`.
 
 v1.1.0 (2026-04-21) — adds `/eo-guide` + `/eo-status` for cross-session resumability, `_dev-progress.md` dual-writer tracker, hardened `handover-bridge` (HANDOVER READINESS 9/9), native Windows PowerShell hooks, CHANGELOG + rollback runbook.
 
