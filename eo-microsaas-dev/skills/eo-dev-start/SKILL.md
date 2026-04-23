@@ -1,12 +1,12 @@
 ---
 name: eo-dev-start
 description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
-version: "1.0"
+version: "1.1"
 ---
 
 # eo-dev-start — First-Run Bootstrap
 
-**Version:** 1.0 (2026-04-21)
+**Version:** 1.1 (2026-04-23 — MCP-absent paths now print a concrete install block and continue as local-only instead of failing silently; invalid replies retry up to 3 times)
 **Pillar:** EO-specific — the single entry point from EO-Brain strategy to Claude Code execution.
 **Purpose:** Replace the 75-line copy-paste bootstrap prompt from `5-CodeHandover/README.md` with one command that reads EO-Brain output, previews exactly what it will create, waits for approval, then executes `handover-bridge` with parameters extracted from phases 0-4.
 
@@ -274,12 +274,38 @@ If output is empty → ask one question:
 | Answer | MCP | Next |
 |--------|-----|------|
 | `1` | present | Record `github_intent=create`. After Step 10 completes handover-bridge, invoke `eo-github` skill in `create` mode. |
-| `1` | absent | Refuse with: "Install a GitHub MCP server first, then re-run /eo-github. For now continuing locally." Fall through to option 3 behavior. |
+| `1` | absent | Print the MCP-install block below, record `github_intent=local-only`, continue. Student can run `/eo-github create` later when MCP is ready. |
 | `2` | present | Ask "Paste the URL or owner/repo:" → record `github_intent=point-existing` + `repo_ref`. After Step 10, invoke `eo-github` skill in `point-existing` mode. |
 | `2` | absent | Same as 1+absent. |
 | `3` | any | Record `github_intent=local-only`. Skip git init in handover-bridge. No remote. |
 | `4` | present | Record `github_intent=guided`. After Step 10, invoke `eo-github` in `guided` mode. |
-| `4` | absent | Print: "GitHub MCP is not connected. Keep building locally — your files are safe. When you have a working MVP and install GitHub MCP, run `/eo-github` to push up." Record `github_intent=local-only`. |
+| `4` | absent | Print the MCP-install block below, record `github_intent=local-only`, continue. |
+| anything else | any | Print: "Reply 1, 2, 3, or 4." Re-ask up to 3 times; after 3 invalid replies, default to option 3 (local-only) and note in evidence. |
+
+**MCP-install block** (printed when MCP is absent and student picked 1, 2, or 4):
+
+```
+⚠️ You picked a GitHub path, but the GitHub MCP server isn't connected
+yet. I'll continue locally so your bootstrap isn't blocked.
+
+To enable GitHub later, add to ~/.claude/settings.json:
+
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..." }
+    }
+  }
+
+Create a PAT at https://github.com/settings/tokens (scopes: repo, read:org).
+Restart Claude Code. Then run /eo-github when ready.
+
+If you'd rather wire GitHub manually without MCP, /eo-github documents
+a manual fallback (create in UI, then `git remote add` yourself).
+
+For now: github_intent=local-only. Bootstrap continues.
+```
 
 Writes performed in this step: zero. Everything is just parameter capture for Step 10 and post-Step-10 routing.
 

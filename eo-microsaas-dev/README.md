@@ -44,10 +44,10 @@ eo-microsaas-dev/
   README.md                       ← this file
   CHANGELOG.md
   commands/
-    eo-dev-start.md               ← bootstrap (v1.2.0; v1.3.0 adds 4-option GitHub Q)
+    eo-dev-start.md               ← bootstrap (v1.2.0; v1.3.0 adds 4-option GitHub Q; v1.3.1 MCP-absent continues locally)
     eo-dev-repair.md              ← surgical repair (v1.2.0)
-    eo-github.md                  ← GitHub admin (v1.3.0 — create/point/guided/audit)
-    eo-guide.md                   ← phase detector + next-step router (v1.3.0 adds local-only routing)
+    eo-github.md                  ← GitHub admin (v1.3.0 — create/point/guided/audit; v1.3.1 stuck-path hardening)
+    eo-guide.md                   ← phase detector + next-step router (v1.3.0 adds local-only routing; v1.3.1 no short-circuit)
     eo-status.md                  ← compact dashboard
     eo-plan.md
     eo-code.md
@@ -58,10 +58,10 @@ eo-microsaas-dev/
     eo-debug.md
     eo-retro.md
   skills/
-    eo-dev-start/SKILL.md         ← one-shot bootstrap + 4-option GitHub intent (v1.2.0 → v1.3.0)
+    eo-dev-start/SKILL.md         ← one-shot bootstrap + 4-option GitHub intent (v1.2.0 → v1.3.0 → v1.3.1)
     eo-dev-repair/SKILL.md        ← classify-then-repair-or-refuse (v1.2.0)
-    eo-github/SKILL.md            ← GitHub admin, MCP-only, plan-aware (v1.3.0)
-    eo-guide/SKILL.md              ← cross-chat continuity (v1.3.0 adds local-only + no-remote states)
+    eo-github/SKILL.md            ← GitHub admin, MCP-only + manual fallback, plan-aware (v1.3.0 → v1.3.1)
+    eo-guide/SKILL.md              ← cross-chat continuity (v1.3.0 states; v1.3.1 hardens short-circuit)
     eo-scorer/                    ← 5-hat scoring
       SKILL.md
       product-hat.md
@@ -84,7 +84,9 @@ eo-microsaas-dev/
 
 ## Version
 
-**v1.3.0** (2026-04-23) — adds `/eo-github` skill + command (four modes: `create`, `point-existing`, `guided`, `audit`). `mcp__github__*` MCP-only — no `gh` CLI fallback. Plan-aware: free/pro/team/enterprise detection omits plan-locked features so students never see settings GitHub would silently ignore. Branch strategy picked from collaborator count (solo → trunk-only; ≥2 → main + dev). Best-practices settings applied on creation: private, squash-merge only, `has_wiki`/`has_projects`/`has_discussions` off, `delete_branch_on_merge` on, EO topics and labels. Branch protection deferred to post-first-CI automation. `/eo-dev-start` now asks one 4-option question when no origin exists (create / point-existing / local-only / I-don't-know) and routes accordingly. `handover-bridge` makes `git init` + first commit conditional on `github_intent`. `/eo-guide` detects `local-only-bootstrapped`, `git-local-no-remote`, and `ready-to-ship-but-no-remote` states and routes to `/eo-github`. See `CHANGELOG.md`.
+**v1.3.1** (2026-04-23) — stuck-path hardening. Every refuse path in the plugin now names a concrete next door. `/eo-guide` no longer gets stuck at `local-only-bootstrapped` for students who keep coding (now advances through sprint-loop phases with a still-local banner). `/eo-github` splits MCP-missing vs MCP-auth-failed (distinct remediation); adds manual fallback escape hatch (text runbook when MCP can't be fixed); adds slug-collision retry loop (3 tries with suggestions); lists 4 labeled exits for the non-empty remote refuse; handles 429 / 422 / secondary rate limits / 5xx distinctly; names MIT / Apache-2 / Proprietary LICENSE options with rationale. `/eo-dev-start` full MCP install block on options 1/2/4 when MCP is absent (no longer blocks the bootstrap). `docs/OPERATOR-GUIDE-v1.3.md` gains §10 "Stuck? Here's the exit" (14 sub-sections, symptom → check → concrete exit) and §11 v1.3.1 delta. Zero breaking changes. See `CHANGELOG.md`.
+
+v1.3.0 (2026-04-23) — adds `/eo-github` skill + command (four modes: `create`, `point-existing`, `guided`, `audit`). `mcp__github__*` MCP-only — no `gh` CLI fallback. Plan-aware: free/pro/team/enterprise detection omits plan-locked features so students never see settings GitHub would silently ignore. Branch strategy picked from collaborator count (solo → trunk-only; ≥2 → main + dev). Best-practices settings applied on creation: private, squash-merge only, `has_wiki`/`has_projects`/`has_discussions` off, `delete_branch_on_merge` on, EO topics and labels. Branch protection deferred to post-first-CI automation. `/eo-dev-start` now asks one 4-option question when no origin exists (create / point-existing / local-only / I-don't-know) and routes accordingly. `handover-bridge` makes `git init` + first commit conditional on `github_intent`. `/eo-guide` detects `local-only-bootstrapped`, `git-local-no-remote`, and `ready-to-ship-but-no-remote` states and routes to `/eo-github`. See `CHANGELOG.md`.
 
 v1.2.0 (2026-04-23) — adds `/eo-dev-start` (one-shot bootstrap from EO-Brain phases 0-4, plan-mode gated, worktree-aware) and `/eo-dev-repair` (classifies every missing piece as silent-repair-safe or refuse-and-route — rebuilds regeneratable files silently, refuses when core artifacts like BRD or architecture are missing). Updates `/eo-guide` to route `pre-bootstrap` → `/eo-dev-start` and `bootstrap-incomplete` → `/eo-dev-repair`. Simplifies the 5-CodeHandover entry point from a 75-line copy-paste prompt to one command. See `CHANGELOG.md`.
 

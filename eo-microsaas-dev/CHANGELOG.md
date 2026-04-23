@@ -5,6 +5,45 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.3.1] — 2026-04-23
+
+### Theme
+**No stuck paths.** Every refuse path in the plugin now names a concrete next door. Behavior on happy paths is unchanged.
+
+### Fixed
+- **`eo-guide` state-machine short-circuit.** v1.3.0 fired `local-only-bootstrapped` before any sprint-loop phase, so local-only students who had been coding for weeks were perpetually told "keep building locally." v1.3.1 only fires that state when no plan files exist yet. Once `docs/plans/story-*.md` lands, sprint-loop phases advance normally with a `🔒 Still local (no git yet)` banner. Same treatment for `has_git=true AND has_remote=false` → `🔗 Git local, no remote yet` banner.
+- **`eo-guide` new phase `ready-to-ship-local-only`.** Local-only students reaching score ≥ 90 now see "🎉 MVP ready to go public. Run `/eo-github` → pick create or point-existing" instead of falling through to inconsistent.
+- **`eo-github` MCP-absent vs MCP-auth-failed split.** v1.3.0 refused identically for both. v1.3.1 Case A (absent) shows the install block; Case B (auth 401/403) shows PAT-specific remediation (regenerate, scopes, SSO, env var name). Two problems, two different fixes.
+- **`eo-github` manual fallback escape hatch.** Student can reply "manual" to any MCP refuse; skill prints a complete text runbook (UI create → `git init` → `git remote add` → `git push` → Settings checklist) and exits with zero writes. Unblocks anyone whose MCP can't be fixed today.
+- **`eo-github` slug collision retry loop (Mode 1).** Now retries up to 3 times with suggestions (`{slug}-2`, `{slug}-{year}`, `eo-{slug}`). After 3 collisions/invalid replies, refuses cleanly — no infinite prompt.
+- **`eo-github` non-empty remote remediation clarity (Mode 2).** Now lists 4 labeled exits (A/B/C/D) describing real situations ("mine but unrelated" / "earlier state of this project" / "mistake, start over" / "force-push outside this skill").
+- **`eo-github` rate-limit + race-condition handling (Step 6).** 429 reads `Retry-After` and exits cleanly. 422 on `create_repo` (race between precheck and create) re-fires the slug-collision loop instead of silently adopting. 403 secondary rate limit exits with 60-sec guidance.
+- **`eo-github` actionable LICENSE guidance.** Evidence table now names MIT / Apache-2 / Proprietary with a one-line rationale each + GitHub UI path, instead of just "add one when ready."
+- **`eo-github` 5xx / network-error handling.** Distinct from MCP-missing and MCP-auth-failed; retries once after 5 sec, then prints GitHubStatus / VPN / proxy check guidance.
+- **`eo-dev-start` MCP-absent on options 1/2/4.** v1.3.0 refused with a one-line "install MCP first." v1.3.1 prints a full install block (settings.json snippet, PAT link + scopes, restart) and continues the bootstrap as `local-only` so the student isn't blocked.
+- **`eo-dev-start` invalid-reply retry.** Anything other than 1/2/3/4 re-asks up to 3 times, then defaults to local-only with a note in evidence.
+
+### Added
+- **§10 "Stuck? Here's the exit" in `docs/OPERATOR-GUIDE-v1.3.md`** — 14 sub-sections, one per potential stuck state. Each has symptom → what to check → concrete exit.
+- **§11 "What changed in v1.3.1" in operator guide.**
+- **Stuck-state exits table in `eo-github` skill** — summary of every refuse path and its named exit.
+- **`eo-guide` anti-patterns entry** on short-circuiting sprint-loop rows.
+- **`eo-github` anti-patterns entries** on infinite retry loops, silent adoption after 422-race, rollback theater, conflating MCP-missing with MCP-auth-failed, and leaving any refuse path without a door.
+
+### Self-score bumps
+- `eo-guide`: 10 checks → 14 checks (adds row-3 guard, banner, ready-to-ship-local-only, exit-named).
+- `eo-github`: 18 checks → 23 checks (adds MCP-Case-B, manual fallback, slug retry cap, 4-exit Mode 2, 429/422 taxonomy, exit-named).
+
+### Non-changes (intentional)
+- No new commands. No new skills. No new files.
+- All v1.3.0 plugin registration stays identical.
+- `.claude/project.json` still not created. Git config remains the single source of truth.
+
+### Migration notes
+No action needed. `/plugin update eo-microsaas-dev` picks up v1.3.1. Existing projects keep working identically — just with clearer doors when something goes wrong.
+
+---
+
 ## [1.3.0] — 2026-04-23
 
 ### Added
