@@ -241,14 +241,65 @@ Will NOT:
 Approve? (y/n)
 ```
 
-On `n` → exit cleanly, no writes. On `y` → proceed to Step 10.
+On `n` → exit cleanly, no writes. On `y` → proceed to Step 9b.
+
+### Step 9b — GitHub intent (one question, four options)
+
+Before handover-bridge runs, determine whether the bootstrap will include a GitHub remote. The skill never silently creates or assumes a remote.
+
+**Precheck:**
+```
+git config --get remote.origin.url 2>/dev/null
+```
+
+If the output is non-empty → the student already wired a remote. Skip this step, record `github_intent=already-wired` for handover-bridge, proceed to Step 10.
+
+If output is empty → ask one question:
+
+```
+📍 No GitHub remote mounted yet. How do you want to handle GitHub?
+
+  1. Create a new private repo now
+  2. Point to a repo I already created on GitHub (paste URL/owner/repo)
+  3. Continue locally — no GitHub yet
+  4. I don't know
+
+(1/2/3/4):
+```
+
+**MCP detection:** inspect available tools in the current session for any `mcp__github__*` prefix. Record `github_mcp_present = true|false`.
+
+**Route:**
+
+| Answer | MCP | Next |
+|--------|-----|------|
+| `1` | present | Record `github_intent=create`. After Step 10 completes handover-bridge, invoke `eo-github` skill in `create` mode. |
+| `1` | absent | Refuse with: "Install a GitHub MCP server first, then re-run /eo-github. For now continuing locally." Fall through to option 3 behavior. |
+| `2` | present | Ask "Paste the URL or owner/repo:" → record `github_intent=point-existing` + `repo_ref`. After Step 10, invoke `eo-github` skill in `point-existing` mode. |
+| `2` | absent | Same as 1+absent. |
+| `3` | any | Record `github_intent=local-only`. Skip git init in handover-bridge. No remote. |
+| `4` | present | Record `github_intent=guided`. After Step 10, invoke `eo-github` in `guided` mode. |
+| `4` | absent | Print: "GitHub MCP is not connected. Keep building locally — your files are safe. When you have a working MVP and install GitHub MCP, run `/eo-github` to push up." Record `github_intent=local-only`. |
+
+Writes performed in this step: zero. Everything is just parameter capture for Step 10 and post-Step-10 routing.
 
 ### Step 10 — Invoke `handover-bridge`
 
-Pass the identity fields from Step 8 to the `handover-bridge` skill. Execute its 11-step sequence. If any step fails:
+Pass the identity fields from Step 8 **and** `github_intent` from Step 9b to the `handover-bridge` skill. It uses `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
+
+Execute its 11-step sequence. If any step fails:
 - Log the failure to `$ROOT/.bootstrap-failures.log`
 - Attempt to roll back writes in that step only (not earlier steps)
 - Exit with clear remediation
+
+### Step 10b — Route to `eo-github` (conditional)
+
+After `handover-bridge` returns success:
+- `github_intent=create` → invoke `eo-github` skill, Mode 1. Skill owns plan-preview + approval + push.
+- `github_intent=point-existing` → invoke `eo-github` skill, Mode 2 with `repo_ref`.
+- `github_intent=guided` → invoke `eo-github` skill, Mode 3.
+- `github_intent=local-only` → skip. Evidence table notes "No GitHub remote — run /eo-github later."
+- `github_intent=already-wired` → skip. Evidence table shows the existing origin URL.
 
 ### Step 11 — Evidence table
 
@@ -269,8 +320,16 @@ Files created:
   .env.example               {env_var_count} variables (no values)
 
 Git:
+  {if github_intent != local-only:}
   First commit: {sha} "chore(bootstrap): initial handoff from EO-Brain phases 0-4"
   Branch: {branch_name}
+  {else:}
+  No git repo initialized (github_intent=local-only)
+
+GitHub:
+  {if github_intent=create|point-existing|guided:}    eo-github skill completed — origin: {origin_url}
+  {if github_intent=already-wired:}                   Existing origin preserved: {origin_url}
+  {if github_intent=local-only:}                      No remote. Run /eo-github when your MVP is ready.
 
 Next command:
   /eo-plan Story-1-{first_story_slug}
@@ -278,7 +337,7 @@ Next command:
 Before you run it:
   - Skim CLAUDE.md (≤150 lines) — make sure it reflects your project
   - Skim architecture/brd.md — confirm all {ac_count} ACs are yours
-  - git push origin {branch_name} if this is your first commit
+  {if github_intent != local-only:} - First push happened via eo-github (or skipped if wiring failed — see output above)
 ```
 
 ---
@@ -290,7 +349,9 @@ Before you run it:
 - **Never invent identity.** If EO-Brain is missing a required field, refuse with remediation. Don't ask the student to fill in what should have come from phases 0-4.
 - **Never decide repair.** Partial state → `/eo-dev-repair`. Period.
 - **Never skip language detection.** `lang=ar` students get Arabic output for the plan preview and evidence table.
-- **Never run `git push`.** The student reviews + pushes manually. The skill writes the first commit to the local repo only.
+- **Never create a GitHub repo silently.** The 4-option question in Step 9b is mandatory whenever no origin exists. All actual GitHub operations are delegated to `eo-github`.
+- **Never `git init` when `github_intent=local-only`.** Students who choose option 3 stay fully local — no git, no remote. They can still use every other plugin feature.
+- **Never `git push` from this skill.** Push is the exclusive responsibility of `eo-github` (on bootstrap) and `/eo-ship` (for releases).
 
 ---
 
@@ -298,9 +359,10 @@ Before you run it:
 
 | Skill | Relationship |
 |-------|--------------|
-| `handover-bridge` | Invoked from Step 10. All heavy lifting (scaffold, tests, CI, lessons seed) happens there. |
+| `handover-bridge` | Invoked from Step 10 with `github_intent`. Scaffolds files; only runs `git init` + first commit when `github_intent ≠ local-only`. |
+| `eo-github` | Invoked from Step 10b when `github_intent ∈ {create, point-existing, guided}`. Owns every remote-touching operation. |
 | `eo-dev-repair` | Routed to when state is `partial`. Never called directly from here. |
-| `eo-guide` | Routed to when state is `bootstrapped`. `eo-guide` also routes back here when it detects `pre-bootstrap` phase. |
+| `eo-guide` | Routed to when state is `bootstrapped`. `eo-guide` also routes back here when it detects `pre-bootstrap` phase. Also surfaces `local-only-bootstrapped` state for students who chose option 3. |
 
 ---
 
@@ -317,8 +379,12 @@ After every run, verify:
 | 5 | EO-Brain completeness verified before plan mode | must pass |
 | 6 | Plan-mode preview printed with identity fields | must pass |
 | 7 | No writes before student approval | must pass |
-| 8 | `handover-bridge` invoked with extracted identity (not defaults) | must pass |
-| 9 | Evidence table printed post-success with bytes + line counts | must pass |
-| 10 | Next command recommendation cites first Story slug from BRD | must pass |
+| 8 | GitHub-intent question asked when no origin was already set | must pass |
+| 9 | MCP presence detected (not assumed) before routing option 1/2/4 | must pass |
+| 10 | `handover-bridge` invoked with extracted identity (not defaults) + `github_intent` | must pass |
+| 11 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
+| 12 | `local-only` path skipped git init entirely | must pass |
+| 13 | Evidence table printed post-success with bytes + line counts | must pass |
+| 14 | Next command recommendation cites first Story slug from BRD | must pass |
 
-Threshold: 10/10. Below = bug → capture in `.claude/lessons.md`.
+Threshold: 14/14. Below = bug → capture in `.claude/lessons.md`.

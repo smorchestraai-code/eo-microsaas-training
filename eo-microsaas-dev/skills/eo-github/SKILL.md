@@ -1,0 +1,702 @@
+---
+name: eo-github
+description: "GitHub setup for EO MicroSaaS projects. Three modes: create (new repo), point-existing (wire up already-created repo), guided (help confused students pick). Uses GitHub MCP tools (mcp__github__*) exclusively. Plan-mode gated — never touches a remote without explicit approval. Private by default. Triggers on: 'eo github', 'create github repo', 'point github repo', 'promote to github', 'wire up origin', 'اربط جيت هب'."
+version: "1.0"
+---
+
+# eo-github — GitHub Setup Skill
+
+**Version:** 1.0 (2026-04-23)
+**Pillar:** EO-specific — owns every remote-touching operation so bootstrap stays local-safe.
+**Purpose:** The only skill in the plugin allowed to create or wire up a GitHub remote. `/eo-dev-start` routes here when a student explicitly asks for GitHub. Students can also invoke directly after local trial work.
+
+**Hard contracts:**
+- Never runs without GitHub MCP (`mcp__github__*`) connected. If missing → refuse with remediation.
+- Never overwrites an existing remote. Once `origin` is set, this skill refuses.
+- Never force-pushes. Never writes to a non-empty remote (protects against adopting someone else's repo).
+- Private by default. Student flips visibility later via GitHub UI.
+- Plan-mode preview before any remote creation or `git remote add`.
+
+---
+
+## Why this skill exists
+
+`/eo-dev-start` is local-only by design (students trial 3 times before "this is the one" — we don't want three abandoned repos polluting the org). GitHub ops are isolated here so:
+
+1. The bootstrap flow stays cheap to retry.
+2. Every remote write is an explicit, reviewed action.
+3. MCP dependency lives in one place — if MCP is missing, only this skill refuses, not the whole plugin.
+
+---
+
+## The admin contract
+
+This skill is the student's GitHub admin for EO MicroSaaS repos. That means:
+
+- **It owns repo state.** Settings drift → skill detects → offers correction.
+- **It adapts to plan.** Paid org (Team/Enterprise) gets features free orgs can't use.
+- **It picks branch strategy.** Solo student = trunk-only. Team = `main` + `dev`.
+- **It never assumes.** Plan-mode preview for every change, even updates to existing repos.
+
+The student is the CEO. The skill is the DevOps person who keeps things consistent.
+
+---
+
+## Four modes
+
+### Mode 1 — `create`
+
+Student wants a fresh GitHub repo for this project.
+
+**Inputs:**
+- `repo_slug` — sanitized from folder name (e.g., `eo-oasis`). Student can override.
+- `visibility` — `private` (default). Always.
+- `description` — first sentence of `EO-Brain/1-ProjectBrain/positioning.md` first line, truncated to 350 chars. Optional.
+
+**Sequence:** precheck → plan preview → create repo → apply best-practices settings → `git init` if needed → stage+commit if no prior commit → `git remote add origin` → `git push -u origin main` → create `dev` branch if team strategy.
+
+### Mode 2 — `point-existing`
+
+Student already made the repo on GitHub and wants this local workspace wired to it.
+
+**Inputs:**
+- `repo_ref` — either a full URL (`https://github.com/org/repo`) or `owner/repo` shorthand.
+
+**Sequence:** precheck → validate repo exists + student has write → validate repo is empty OR only has a README (no bootstrap collision) → plan preview → `git init` if needed → stage+commit if no prior commit → `git remote add origin` → `git push -u origin main`.
+
+### Mode 3 — `guided`
+
+Triggered when student picked "I don't know" in `/eo-dev-start`'s 4-option question AND GitHub MCP is connected. Explains create vs point-existing in one screen, asks the student to pick, then hands off to Mode 1 or Mode 2.
+
+### Mode 4 — `audit` (admin maintenance)
+
+Invokable any time post-setup as `/eo-github audit`. Reads current repo state via MCP, compares to the best-practices matrix, emits a drift report:
+
+- What matches spec (green)
+- What drifted (yellow) — with "Fix in plan mode (y/n)?" prompt
+- What's unfixable by the skill (red) — e.g., billing plan changes, requires student action
+
+Only writes on explicit `y` per drifted setting. Never batch-fixes without per-item approval when the fix is non-trivial (protected branch rules, collaborator changes).
+
+Runs automatically after the first `/eo-ship` to offer branch protection activation (see "Post-first-CI automation" below).
+
+---
+
+## Org type awareness (paid vs free)
+
+On every mode, detect the target org's plan once via MCP (cache in memory for the session):
+
+```
+owner_type = user | organization
+plan       = free | pro | team | enterprise  (from MCP org/user fetch)
+```
+
+### What the skill does differently by plan
+
+| Feature | Free / Pro | Team+ | Enterprise |
+|---------|------------|-------|------------|
+| Private repos | ✅ unlimited | ✅ | ✅ |
+| Branch protection on `main` | ✅ (basic: require PR, no force-push) | ✅ + required reviewers | ✅ + required reviewers + bypass lists |
+| Required status checks | ✅ after first CI green | ✅ | ✅ |
+| CODEOWNERS enforcement | ❌ (file ignored by GitHub on free/pro) | ✅ applied | ✅ applied |
+| Draft PRs | ✅ | ✅ | ✅ |
+| Required reviewers | ❌ skip — not honored | ✅ set to 1 for solo, 1-2 for team | ✅ |
+| Secret scanning | Push protection only | ✅ full | ✅ full |
+| Audit log retrieval | ❌ | ✅ | ✅ |
+
+**Rule:** the skill never offers a setting that the plan can't honor. Free-plan students never see "required reviewers — on/off?" because GitHub would silently ignore it. That teaches the wrong mental model.
+
+Plan detection is non-blocking — if MCP can't resolve the plan, default to `free` and warn in evidence table.
+
+---
+
+## Branch strategy
+
+Detect collaborators via MCP (`list_collaborators` or equivalent):
+
+- **Solo (≤1 collaborator including owner) → trunk-only:** default branch `main`. Feature branches named `feat/*`, `fix/*`, `chore/*`. Merge back to `main` via PR. No long-lived `dev`. This matches the EO `/eo-ship` flow — main is always shippable.
+- **Team (≥2 collaborators) → dual-branch:** default branch `main` (production), auxiliary branch `dev` (integration). Feature branches merge to `dev`; `dev` merges to `main` on release. CI runs on PRs to both.
+
+### What the skill creates
+
+| Scenario | Branches at creation | Branch protection (deferred until first CI pass) |
+|---|---|---|
+| Solo, Mode 1 | `main` only | `main`: require PR, disallow force-push, disallow deletion |
+| Team, Mode 1 | `main` + `dev` (dev branched from main's first commit) | `main`: require PR + 1 reviewer (Team plan) + required status checks; `dev`: require PR + required status checks |
+| Solo, Mode 2 (existing empty repo) | Inherits existing default (usually `main`). Creates `dev` only if student explicitly requests team mode. | Same as above |
+| Team, Mode 2 | Verifies `main` exists. Creates `dev` if missing. | Same as above |
+
+The plan-mode preview always shows the branch plan explicitly. If the student is solo now but plans to add collaborators soon, they can flip to team mode via plan preview (`Choose strategy: trunk / dual`).
+
+### Post-first-CI automation
+
+Branch protection can only require status checks that have *actually run at least once*. On first `/eo-ship` success:
+
+1. `/eo-ship` signals to `eo-github` (via a marker file or direct invocation) that CI has passed.
+2. `eo-github audit` runs and offers:
+   ```
+   ✅ CI passed for the first time.
+   
+   Ready to lock down main? Proposed protection:
+     - Require PRs (no direct pushes to main)
+     - Require status check: "CI" (just passed)
+     - Disallow force-push
+     - Disallow branch deletion
+     - Include administrators: yes (protects you from yourself)
+   
+   Apply? (y/n)
+   ```
+3. On `y` → applies via MCP. On `n` → leaves main unprotected; prompts again after next 3 ships.
+
+This is how protection gets on without blocking the first-ever push.
+
+---
+
+## Repo creation best practices (applied by Mode 1)
+
+Every repo this skill creates inherits the same shape. Students learn one mental model; future tooling reads a predictable structure.
+
+### Naming rules (enforced at slug sanitization)
+
+| Rule | Why |
+|---|---|
+| Lowercase only | GitHub URLs are case-insensitive; mixed case causes clone confusion |
+| ASCII alphanumeric + hyphen `-` | No underscores (breaks subdomains), no dots (breaks routing), no unicode (breaks tooling) |
+| Must start with a letter | Numeric-leading names confuse some build systems |
+| 3-60 chars (hard bounds) | Short enough for URL bars, long enough to be specific |
+| No consecutive hyphens | Visual noise + typo risk |
+| No trailing hyphens | Breaks some CI parsers |
+| Reject reserved names | `api`, `www`, `admin`, `test`, `new`, `main`, `master`, `docs`, `blog`, `auth` — too generic, collides with subroutes |
+| Prefix `eo-` if `mena_flag` is true | Groups EO MENA projects together in the org listing |
+| No version numbers (`-v2`, `-2026`) | Use tags for versioning, not repo names |
+| No client names unless intentional | A repo named `acme-microsaas` is a marketing commitment; confirm with student |
+
+Sanitization order: lowercase → strip non-[a-z0-9-] → collapse consecutive `-` → trim edges → check reserved list → check length. If final slug fails any rule → prompt student for a replacement. Never silently rename.
+
+### Repo settings at creation (always applied)
+
+| Setting | Value | Why |
+|---|---|---|
+| `private` | `true` | Pre-launch default. Student flips public in UI when ready. |
+| `default_branch` | `main` | Never `master`. Consistency across the org. |
+| `description` | First non-empty line of `EO-Brain/1-ProjectBrain/positioning.md`, ≤350 chars | Empty descriptions make the repo listing useless. If positioning is missing, prompt the student. |
+| `auto_init` | `false` | We have scaffold content from `handover-bridge`. Don't let GitHub create a competing README. |
+| `has_issues` | `true` | Bug intake surface. Keep on. |
+| `has_wiki` | `false` | Docs live in `docs/` inside the repo. Wiki creates drift. |
+| `has_projects` | `false` | Tracker is `_dev-progress.md`. GitHub Projects is noise at this stage. |
+| `has_discussions` | `false` | Add later if community grows. Empty Discussions tab is worse than none. |
+| `allow_squash_merge` | `true` | Default merge strategy for PR flow. |
+| `allow_merge_commit` | `false` | Keep history linear. |
+| `allow_rebase_merge` | `false` | One default, one mental model. |
+| `delete_branch_on_merge` | `true` | Feature branches are ephemeral. Cleans up noise. |
+
+### Topics applied (auto-derived)
+
+Always: `eo-microsaas`
+If `mena_flag`: add `mena`, `arabic-rtl`
+From `tech-stack-decision.md`: add up to 5 detected tools (e.g., `nextjs`, `supabase`, `tailwindcss`, `typescript`, `stripe`)
+
+Topics help discoverability within the student's own org listing and signal the stack at a glance.
+
+### Issue labels preset (created after repo exists)
+
+| Label | Color | Purpose |
+|---|---|---|
+| `bug` | `#d73a4a` | Something is broken |
+| `enhancement` | `#a2eeef` | New feature or improvement |
+| `blocked` | `#b60205` | Waiting on external decision or dep |
+| `needs-info` | `#fbca04` | Can't act without more detail from reporter |
+| `mena` | `#0e8a16` | MENA-specific (RTL, locale, payment rails) |
+| `score-gap` | `#c5def5` | Raised during `/eo-score` — track which hat |
+
+Skip labels that already exist (GitHub creates `bug`, `enhancement` by default — don't duplicate; just add the new ones).
+
+### LICENSE handling
+
+If no `LICENSE` file exists in the local scaffold → do NOT auto-create one. Print in the evidence table: *"No LICENSE found. Add one when ready: MIT is the common MicroSaaS default."* Licensing is a business decision, not a bootstrap default — students should choose consciously.
+
+### Things this skill does NOT set (intentionally deferred)
+
+| Deferred setting | Why | When student handles it |
+|---|---|---|
+| Branch protection on `main` | Requires at least one CI run to define required status checks | After first `/eo-ship` succeeds and CI runs once — evidence table prompts the student |
+| CODEOWNERS | Needs human judgment on who reviews what | When the project has ≥2 contributors |
+| Security policy (`SECURITY.md`) | Template should be chosen by student | After first private beta |
+| Environments & secrets | Depend on deploy lane (Vercel vs Contabo) | During `/eo-ship` → `/eo-deploy` flow |
+| Dependabot | Opinionated | Student enables in GitHub UI if desired |
+
+The evidence table at Step 7 tells the student which of these are worth doing next.
+
+---
+
+## Execution sequence
+
+### Step 1 — Resolve workspace root
+
+Worktree-aware:
+```
+if [ -n "$GIT_WORK_TREE" ]; then ROOT="$GIT_WORK_TREE"
+elif git rev-parse --show-toplevel >/dev/null 2>&1; then ROOT="$(git rev-parse --show-toplevel)"
+else ROOT="$PWD"
+fi
+```
+
+### Step 2 — MCP precheck
+
+Check for the presence of GitHub MCP tools. The agent runtime exposes MCP tools with the `mcp__github__` prefix. If **no** tool in the current session matches that prefix → refuse:
+
+```
+❌ GitHub MCP not connected.
+
+This skill requires the GitHub MCP server. Without it, I can't safely
+create or wire up remotes.
+
+Remediation:
+  1. Install a GitHub MCP server in ~/.claude/settings.json (look for
+     "mcp__github" in your tool list after restart).
+  2. Once connected, re-run /eo-github.
+
+Meanwhile: keep building locally. Nothing is lost — your files stay
+exactly where they are. When GitHub MCP is ready, come back here.
+
+No writes made.
+```
+
+Exit.
+
+### Step 3 — Remote precheck (refuse if origin exists)
+
+```
+git config --get remote.origin.url 2>/dev/null
+```
+
+If output is non-empty → refuse:
+
+```
+⚠️ Origin remote already set.
+
+Current origin: {existing_url}
+
+This skill refuses to overwrite an existing remote. Options:
+  - If that remote is correct: use normal git commands (git push, /eo-ship)
+  - If it's wrong: manually `git remote set-url origin <correct>` then
+    re-run /eo-github to push your current state.
+  - If you need a completely fresh start: see /eo-dev-repair.
+
+No writes made.
+```
+
+Exit.
+
+### Step 4 — Determine default owner
+
+Via MCP, fetch the authenticated user (e.g., `mcp__github__get_me` or the equivalent in the connected server). Record `default_owner = login`.
+
+If the MCP call fails (auth missing, network) → refuse with the same template as Step 2, add `gh auth status` equivalent remediation if available in the connected server.
+
+### Step 5 — Branch by mode
+
+#### Mode 1 (`create`) — derive slug + show plan
+
+Sanitize folder name to a GitHub-safe slug:
+- Lowercase
+- Replace non-alphanumeric with `-`
+- Collapse consecutive `-`
+- Trim leading/trailing `-`
+- Truncate to 90 chars
+
+Via MCP, check if `{default_owner}/{slug}` already exists. If yes → ask student for an alternate slug or refuse.
+
+Read description candidate:
+- First non-empty line of `$ROOT/../EO-Brain/1-ProjectBrain/positioning.md` (or search paths as in `eo-dev-start` Step 2)
+- Strip markdown heading markers, truncate to 350 chars
+- If absent → empty description
+
+**Plan mode preview:**
+
+```
+📋 Create GitHub repo
+
+  Repo:         {default_owner}/{slug}
+  Visibility:   private
+  Description:  {description or "—"}
+  Default branch: main
+  Will push:    {current branch head if git exists, else "first commit of
+                 current working tree"}
+
+After creation:
+  - Local git initialized (if not already)
+  - Single commit: "chore(bootstrap): initial handoff" (only if no prior
+    commits exist; otherwise uses existing HEAD)
+  - origin wired to git@github.com:{default_owner}/{slug}.git
+  - First push: git push -u origin main
+
+Will NOT:
+  - Set visibility to public (flip in GitHub UI when ready)
+  - Force push
+  - Modify any file at {ROOT}
+  - Change branch protection (do that in GitHub Settings when ready)
+
+Approve? (y/n)
+```
+
+On `n` → exit, no writes.
+On `y` → Step 6.
+
+#### Mode 2 (`point-existing`) — validate + show plan
+
+Parse `repo_ref`:
+- Full URL `https://github.com/X/Y` → owner=X, repo=Y
+- Shorthand `X/Y` → owner=X, repo=Y
+- Anything else → ask student to paste a valid ref, no other writes
+
+Via MCP:
+1. `get_repository(owner, repo)` — if 404 → refuse with "repo not found on GitHub. Create it first or use mode 1."
+2. Check `permissions.push == true` — if false → refuse with "you don't have push access. Fix permissions on GitHub first."
+3. List commits or check default branch state — if the repo has commits beyond a single initial README commit → refuse with:
+
+```
+❌ Target repo {owner}/{repo} is not empty.
+
+Found: {commit_count} commits, last by {author} on {date}.
+
+This skill refuses to push onto a non-empty remote. Options:
+  - If those commits are yours and unrelated: push this project to a
+    different repo (mode 1 creates a new one).
+  - If those commits ARE this project's earlier state: use normal git
+    commands to merge/rebase — this skill won't guess the strategy.
+
+No writes made.
+```
+
+Empty repo (or only an auto-generated README from GitHub UI) → proceed.
+
+Run the best-practices diff against the existing repo:
+
+- Read current `has_wiki`, `has_projects`, `has_discussions`, `allow_*`, `delete_branch_on_merge`, description, topics, labels, default branch
+- Compare to best-practices matrix
+- Build a drift list (only items that can be safely changed without touching existing content)
+
+**Plan mode preview:**
+
+```
+📋 Point to existing GitHub repo
+
+  Repo:         {owner}/{repo}
+  URL:          {html_url}
+  Plan:         {free|pro|team|enterprise}
+  Owner type:   {user|organization}
+  Strategy:     {trunk-only | dual-branch}   ← picked based on collaborator count
+  Visibility:   {current}  (skill does not change this)
+  Empty:        yes (or "README only — will be preserved")
+  Will push:    {current branch head if git exists, else "first commit
+                 of current working tree"}
+
+Settings to align with best practices (diff):
+  has_wiki              {current} → false
+  has_projects          {current} → false
+  has_discussions       {current} → false
+  delete_branch_on_merge {current} → true
+  allow_merge_commit    {current} → false
+  description           {current or "—"} → "{proposed from positioning.md}"
+  topics                {current} → [eo-microsaas, mena?, {stack}...]
+  labels                {missing} → add {list}
+
+After wiring:
+  - Local git initialized (if not already)
+  - Single commit: "chore(bootstrap): initial handoff" (only if no prior
+    commits exist; otherwise uses existing HEAD)
+  - origin wired to git@github.com:{owner}/{repo}.git
+  - First push: git push -u origin main
+  - {If dual-branch strategy:} dev branch created from main's HEAD and pushed
+
+Deferred (applied after first CI green — see Post-first-CI automation):
+  - Branch protection on main
+  - Required status check "CI"
+
+Will NOT:
+  - Change the repo's visibility (already set by you)
+  - Force push
+  - Delete or rewrite existing README or any committed file
+  - Delete or rename existing labels (only add missing ones)
+  - Touch collaborators or webhooks
+
+Approve? (y/n — or "skip-settings" to wire up origin only, no admin sync)
+```
+
+On `n` → exit, no writes.
+On `skip-settings` → jump to Step 6 for the push sequence, skip settings alignment.
+On `y` → Step 6 (push) + Step 6b (settings alignment).
+
+#### Mode 3 (`guided`) — explain + route
+
+Print:
+
+```
+📍 GitHub setup — pick one:
+
+  A. Create a new repo now
+     I'll create {default_owner}/{suggested_slug} as private and wire up
+     this workspace to it.
+
+  B. Point to a repo I already created
+     You've made an empty repo on GitHub (maybe from the web UI or
+     another tool). Paste the URL or owner/repo and I'll wire it up.
+
+  C. Not now — keep building locally
+     No GitHub actions. Come back to /eo-github later.
+
+(A/B/C):
+```
+
+Capture answer:
+- `A` → jump to Mode 1
+- `B` → ask "Paste the URL or owner/repo:" → Mode 2
+- `C` → print the same "build locally, come back later" message as Step 2 refusal case and exit without writes
+
+#### Mode 4 (`audit`) — read current state, diff, fix per-item
+
+Invocation: `/eo-github audit`. Requires an existing origin (refuse if no origin — there's nothing to audit).
+
+**Sequence:**
+
+1. **Read current state via MCP:**
+   - `get_repository(owner, repo)` → settings, description, default_branch, visibility, plan (from owner).
+   - `list_topics(owner, repo)` → current topics.
+   - `list_labels(owner, repo)` → current labels.
+   - `list_branches(owner, repo)` → branch set (to decide if `dev` is expected).
+   - `get_branch_protection(owner, repo, "main")` → protection state (404 if unprotected).
+   - `list_collaborators(owner, repo)` → count → strategy.
+   - Last CI run status (to decide whether to offer branch protection).
+
+2. **Compute drift** against the best-practices matrix. For each item:
+   - `match` → green, no action.
+   - `drift-fixable` → yellow, offer fix.
+   - `drift-manual` → red, explain (e.g., plan change required).
+
+3. **Print drift report:**
+   ```
+   📊 Repo audit — {owner}/{repo}
+   
+   Plan: {plan}   Strategy: {strategy}   Collaborators: {n}
+   Last CI run: {status or "none yet"}
+   
+   ✅ Matches spec ({n})
+     - has_wiki=false
+     - delete_branch_on_merge=true
+     - ...
+   
+   ⚠️ Drifted — fixable ({n})
+     - has_projects: true → false     Fix? (y/n)
+     - allow_merge_commit: true → false   Fix? (y/n)
+     - topics: [{current}] → [{proposed}]  Fix? (y/n)
+     - labels missing: mena, score-gap    Add? (y/n)
+     - dev branch missing (team strategy) Create? (y/n)
+   
+   🚫 Not fixable by this skill ({n})
+     - CODEOWNERS ignored on your plan — upgrade to Team to enforce
+     - Required reviewers — upgrade to Team
+     - Visibility change — use GitHub UI (business decision)
+   
+   🛡️ Branch protection on main
+     - Currently: {"unprotected" | "protected — status_checks={list}"}
+     - Offer activation? {"Yes — CI has passed at least once" | "Not yet — waiting for first green CI"}
+   ```
+
+4. **Per-item execute.** For each `y`, apply via MCP, record in manifest. For each `n`, skip and note in evidence table as "declined by student this run."
+
+5. **If branch protection offered and approved:** apply with the proven status-check name from the last green CI run (extracted from checks API). Include administrators. Never override pre-existing protection without explicit diff + approval.
+
+6. **Evidence table** (audit variant):
+   ```
+   ✅ Audit complete.
+   
+     Fixes applied:  {count}
+     Declined:       {count}
+     Manual items:   {count}
+     Protection:     {"activated" | "still deferred" | "already active"}
+   
+   Re-run anytime: /eo-github audit
+   ```
+
+### Step 6 — Execute (post-approval)
+
+Run in this exact order. If any sub-step fails, stop and roll back only what this invocation wrote (tracked with a manifest).
+
+1. **Git init if needed:**
+   ```
+   if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+     git init -b main
+   fi
+   ```
+
+2. **Ensure main branch:**
+   ```
+   current=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+   if [ "$current" != "main" ]; then
+     git branch -m main || git checkout -b main
+   fi
+   ```
+
+3. **First commit if needed:**
+   ```
+   if ! git rev-parse HEAD >/dev/null 2>&1; then
+     git add -A
+     git commit -m "chore(bootstrap): initial handoff"
+   fi
+   ```
+
+4. **Create remote repo (Mode 1 only):** via MCP, create `{default_owner}/{slug}` with visibility=private, description, default_branch=main. Capture the `clone_url` (SSH).
+
+5. **Wire remote:**
+   ```
+   git remote add origin {clone_url}
+   ```
+
+6. **Push:**
+   ```
+   git push -u origin main
+   ```
+
+   If the remote had a README and push is rejected as non-fast-forward → refuse with:
+   ```
+   ❌ Push rejected — remote has commits not in local.
+   
+   The remote has a commit (likely auto-generated README) that isn't in
+   your local history. Resolve manually:
+     git pull --rebase origin main
+     git push -u origin main
+   
+   No further writes made.
+   ```
+   Do NOT force push.
+
+7. **Create `dev` branch (team strategy only):**
+   ```
+   git checkout -b dev
+   git push -u origin dev
+   git checkout main
+   ```
+
+### Step 6b — Align settings (Mode 1 always; Mode 2 unless `skip-settings`)
+
+Apply each item from the best-practices matrix via MCP. Idempotent: reading current value first; skip if already correct. Record each write in the execution manifest for rollback.
+
+Order:
+1. **Repo settings** (`update_repository` or equivalent): `has_wiki`, `has_projects`, `has_discussions`, `allow_squash_merge`, `allow_merge_commit`, `allow_rebase_merge`, `delete_branch_on_merge`, `description`.
+2. **Topics** (`replace_topics` / `set_topics`): merge preset + detected stack, dedupe, apply.
+3. **Labels** (`create_label` per missing label): skip any label whose name already exists (case-insensitive).
+4. **CODEOWNERS** (Team+/Enterprise only): if a `.github/CODEOWNERS` file exists locally it is already committed; skill does not write one. On free/pro plans, print: *"CODEOWNERS is ignored on your current plan. File retained but not enforced until Team plan."*
+
+Any individual setting write that fails → log the failure in the evidence table, continue with the next. Never abort the whole alignment on a single 422/403 — report at the end.
+
+Branch protection is **never applied at this step**. It is deferred to post-first-CI automation (see the dedicated section above).
+
+### Step 7 — Evidence table
+
+```
+✅ GitHub set up.
+
+  Repo:           {owner}/{repo}
+  URL:            {html_url}
+  Plan:           {free|pro|team|enterprise}
+  Visibility:     private
+  Default branch: main
+  Strategy:       {trunk-only | dual-branch}
+  Origin:         {clone_url}
+  First push:     {commit_sha_short} "{subject}"
+  dev branch:     {created + pushed | N/A (solo)}
+
+Settings aligned:
+  has_wiki=false  has_projects=false  has_discussions=false
+  delete_branch_on_merge=true  squash-only merge  description set
+
+Topics:           eo-microsaas {mena?} {stack tags}
+Labels added:     {list or "none — all already present"}
+Label skipped:    {list or "none"}
+
+Deferred (apply later):
+  - Branch protection on main (after first /eo-ship green CI)
+  - CODEOWNERS enforcement ({"enabled on your plan" | "ignored on free/pro"})
+  - LICENSE ({"present" | "add when ready — MIT is the common default"})
+
+Write failures (if any):
+  {setting} — {reason} — fix manually in GitHub UI
+
+Next:
+  - /eo-guide will now detect your GitHub remote on next run
+  - /eo-ship will push to this remote from now on
+  - /eo-github audit  — re-check settings anytime
+  - Flip to public when ready: GitHub UI → Settings → General → Visibility
+```
+
+### Step 8 — Failure rollback
+
+If Step 6 fails between sub-steps:
+- If step 4 succeeded (remote repo created) but step 5 or 6 failed → print:
+  ```
+  ⚠️ GitHub repo created at {url} but local wiring failed.
+  
+  The repo exists on GitHub but your local workspace is not connected.
+  To recover:
+    - Delete the remote (GitHub UI → Settings → Delete) and re-run
+    - OR: manually set the remote: git remote add origin {clone_url} && git push -u origin main
+  ```
+- If step 5 succeeded but step 6 failed → remote is wired but nothing is pushed. Print remediation, leave state alone (next `git push` will succeed).
+
+Never auto-delete a GitHub repo. That's destructive and the student must confirm.
+
+---
+
+## Anti-patterns
+
+- **Silent remote creation.** Plan-mode preview is not optional. Every creation requires explicit `y`.
+- **Force push to match local.** Never. If push is rejected, refuse with merge/rebase guidance.
+- **Defaulting to public.** Students are pre-launch, identity is sensitive. Private always.
+- **Using `gh` CLI as fallback when MCP is missing.** The contract is MCP-only. Fallbacks create drift between "this skill works" and "this skill works the way the student expects." Refuse cleanly and route to install MCP.
+- **Adopting a non-empty remote.** Don't push into a repo with unrelated history. Refuse and let the student decide.
+- **Hardcoding an org.** Always use the authenticated user as default owner. Let the student override if they want.
+- **Offering plan-locked features.** Never show "required reviewers — on/off?" on a free plan. GitHub would silently ignore it and teach the student the wrong mental model.
+- **Batch settings-fix without per-item approval (audit mode).** In Mode 4 every drifted item gets its own `y/n`. Students learn what changed and why. A blanket "apply all" hides the decisions.
+- **Applying branch protection on creation.** Protection rules can't require status checks that have never run. Always defer to post-first-CI automation.
+- **Renaming existing labels.** Mode 1 creates missing labels. Mode 4 adds missing labels. Neither renames or recolors existing labels — that's student UI drift territory, not bootstrap.
+- **Creating `dev` for solo students.** One extra branch = two extra merge decisions per feature for zero benefit. Trunk-only until collaborators appear.
+- **Creating a LICENSE for the student.** Licensing is a business decision. Evidence table prompts; student chooses.
+
+---
+
+## Integration
+
+| Skill | Relationship |
+|-------|--------------|
+| `eo-dev-start` | Routes here when student picks option 1, 2, or 4+MCP. Passes mode hint. |
+| `eo-guide` | Detects presence of GitHub remote and adjusts phase labels. Never invokes this skill directly. |
+| `eo-dev-repair` | Never calls this skill. Remote state is not repairable — student runs `/eo-github` manually when ready. |
+| `handover-bridge` | Independent. `handover-bridge` is git-aware but does not assume a remote. If remote exists when it runs, the first commit lands and push is deferred to `/eo-ship`. |
+
+---
+
+## Self-score protocol
+
+| # | Check | Threshold |
+|---|-------|-----------|
+| 1 | MCP precheck fired and refused when `mcp__github__*` missing | must pass |
+| 2 | Existing-origin precheck refused when origin is already set (Modes 1 & 2) | must pass |
+| 3 | Default owner read from MCP (never hardcoded) | must pass |
+| 4 | Plan-mode preview shown before any remote creation, `git remote add`, or settings write | must pass |
+| 5 | Visibility defaulted to `private` | must pass |
+| 6 | Mode 2 refused on non-empty remote (not force-pushed) | must pass |
+| 7 | Git init happened only when `.git` was absent | must pass |
+| 8 | First commit created only when no prior commit existed | must pass |
+| 9 | No force push anywhere in the path | must pass |
+| 10 | Evidence table post-success with repo URL + push sha | must pass |
+| 11 | Slug passed all naming rules (lowercase, length, reserved-list, no trailing hyphen) | must pass |
+| 12 | Plan detected before offering plan-locked features (required reviewers, CODEOWNERS enforcement) | must pass |
+| 13 | Branch strategy picked from collaborator count, not assumed | must pass |
+| 14 | Branch protection deferred to post-first-CI (not applied at creation) | must pass |
+| 15 | Mode 4 audit asked per-item `y/n` on drifted settings (no batch apply) | must pass |
+| 16 | Settings write failures logged in evidence table, alignment did not abort on first error | must pass |
+| 17 | `dev` branch created only when team strategy (≥2 collaborators) | must pass |
+| 18 | No LICENSE auto-created — prompt only | must pass |
+
+Threshold: 18/18. Below = bug → capture in `.claude/lessons.md`.
