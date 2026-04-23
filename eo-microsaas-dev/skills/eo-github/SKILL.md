@@ -1,12 +1,12 @@
 ---
 name: eo-github
-description: "GitHub setup for EO MicroSaaS projects. Three modes: create (new repo), point-existing (wire up already-created repo), guided (help confused students pick). Uses GitHub MCP tools (mcp__github__*) exclusively. Plan-mode gated — never touches a remote without explicit approval. Private by default. Triggers on: 'eo github', 'create github repo', 'point github repo', 'promote to github', 'wire up origin', 'اربط جيت هب'."
-version: "1.0"
+description: "GitHub setup for EO MicroSaaS projects. Four modes: create (new repo), point-existing (wire up already-created repo), guided (help confused students pick), audit (drift report for an existing repo). Uses GitHub MCP tools (mcp__github__*) exclusively. Plan-mode gated — never touches a remote without explicit approval. Private by default. Every refuse path names a concrete next door. Triggers on: 'eo github', 'create github repo', 'point github repo', 'promote to github', 'wire up origin', 'اربط جيت هب'."
+version: "1.1"
 ---
 
 # eo-github — GitHub Setup Skill
 
-**Version:** 1.0 (2026-04-23)
+**Version:** 1.1 (2026-04-23 — stuck-path hardening: slug collision retry, non-empty remote remediation clarity, MCP auth vs missing split, rate-limit / race handling, manual escape hatch, actionable LICENSE guidance)
 **Pillar:** EO-specific — owns every remote-touching operation so bootstrap stays local-safe.
 **Purpose:** The only skill in the plugin allowed to create or wire up a GitHub remote. `/eo-dev-start` routes here when a student explicitly asks for GitHub. Students can also invoke directly after local trial work.
 
@@ -241,9 +241,11 @@ else ROOT="$PWD"
 fi
 ```
 
-### Step 2 — MCP precheck
+### Step 2 — MCP precheck (two distinct failure paths)
 
-Check for the presence of GitHub MCP tools. The agent runtime exposes MCP tools with the `mcp__github__` prefix. If **no** tool in the current session matches that prefix → refuse:
+Check for the presence of GitHub MCP tools. The agent runtime exposes MCP tools with the `mcp__github__` prefix.
+
+**Case A — MCP tools absent entirely** (no tool name matches `mcp__github__`):
 
 ```
 ❌ GitHub MCP not connected.
@@ -251,18 +253,92 @@ Check for the presence of GitHub MCP tools. The agent runtime exposes MCP tools 
 This skill requires the GitHub MCP server. Without it, I can't safely
 create or wire up remotes.
 
-Remediation:
-  1. Install a GitHub MCP server in ~/.claude/settings.json (look for
-     "mcp__github" in your tool list after restart).
-  2. Once connected, re-run /eo-github.
+Remediation (pick one, most common first):
+  1. Install via settings.json — add to ~/.claude/settings.json:
+       "mcpServers": {
+         "github": {
+           "command": "npx",
+           "args": ["-y", "@modelcontextprotocol/server-github"],
+           "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..." }
+         }
+       }
+     Create the PAT at https://github.com/settings/tokens (classic or
+     fine-grained; scopes: repo, read:org). Restart Claude Code.
+  2. Install the GitHub MCP CLI globally — follow your installer's docs.
+  3. Manual escape hatch (see "Manual fallback" below) — skip MCP entirely
+     and wire up via GitHub UI + `git remote add`. You lose the admin
+     settings alignment but you get unblocked today.
 
-Meanwhile: keep building locally. Nothing is lost — your files stay
-exactly where they are. When GitHub MCP is ready, come back here.
+Sprint work continues either way. /eo-plan, /eo-code, /eo-score, and
+/eo-bridge-gaps all work without a remote. Only /eo-ship will refuse.
 
 No writes made.
 ```
 
 Exit.
+
+**Case B — MCP tools present but auth fails** (tool call returns 401/403 or "bad credentials"):
+
+```
+❌ GitHub MCP is connected but authentication failed.
+
+Likely causes:
+  1. PAT expired — most common. GitHub PATs expire on a schedule.
+     Fix: https://github.com/settings/tokens → regenerate → paste into
+     settings.json → restart Claude Code.
+  2. PAT missing required scopes — need `repo` and `read:org`
+     at minimum. Fine-grained PATs need "Administration: read/write"
+     for repo creation.
+  3. SSO not approved for this token — if your org uses SSO, approve
+     the PAT at https://github.com/settings/tokens under "SSO".
+  4. MCP server misconfigured — env var name differs per server
+     (some use GITHUB_TOKEN, others GITHUB_PERSONAL_ACCESS_TOKEN).
+     Check the server's README.
+
+After fixing, re-run /eo-github. All local state is preserved.
+
+No writes made.
+```
+
+Exit.
+
+### Step 2b — Manual fallback (escape hatch when MCP can't be fixed now)
+
+Invoked explicitly by the student saying "manual" / "bypass MCP" in response to either Step 2 refusal. The skill produces an operator runbook — text only, zero writes — that the student executes by hand:
+
+```
+📘 Manual GitHub wire-up (no MCP needed)
+
+1. Create the repo in GitHub UI:
+   - https://github.com/new
+   - Name: {suggested_slug}
+   - Private
+   - Do NOT initialize with README, .gitignore, or LICENSE
+     (we already have scaffold content locally)
+   - Create repository
+
+2. In this terminal, from project root:
+     git init -b main                       # only if .git is missing
+     git add -A
+     git commit -m "chore(bootstrap): initial handoff"
+     git remote add origin git@github.com:{owner}/{slug}.git
+     git push -u origin main
+
+3. Back in GitHub UI → Settings:
+   - Options → disable Wiki, Projects, Discussions
+   - Options → "Automatically delete head branches" on
+   - Options → only "Allow squash merging" checked
+   - Collaborators → add anyone who needs write
+   - Branches → wait until your first CI runs, then add protection
+     requiring a status check named "CI"
+
+4. Back here: /eo-guide will detect the remote on next run.
+
+This skill produces zero writes in manual mode. Everything above is
+executed by you.
+```
+
+Exit. The student returns when ready (either MCP fixed, or they wire it manually and just keep going).
 
 ### Step 3 — Remote precheck (refuse if origin exists)
 
@@ -292,7 +368,25 @@ Exit.
 
 Via MCP, fetch the authenticated user (e.g., `mcp__github__get_me` or the equivalent in the connected server). Record `default_owner = login`.
 
-If the MCP call fails (auth missing, network) → refuse with the same template as Step 2, add `gh auth status` equivalent remediation if available in the connected server.
+If the MCP call fails with a 401/403 / "bad credentials" signal → jump to **Step 2 Case B** (auth remediation).
+
+If the MCP call fails with a network / 5xx / timeout → print:
+
+```
+⚠️ GitHub MCP reachable but returned a server error.
+
+This is almost always a transient GitHub outage. Check:
+  - https://www.githubstatus.com/
+  - Your network (VPN? corporate proxy blocking api.github.com?)
+
+Options:
+  - Wait 2 minutes and re-run /eo-github.
+  - Use the manual fallback (Step 2b) if GitHub UI still works.
+
+No writes made.
+```
+
+Exit.
 
 ### Step 5 — Branch by mode
 
@@ -303,9 +397,40 @@ Sanitize folder name to a GitHub-safe slug:
 - Replace non-alphanumeric with `-`
 - Collapse consecutive `-`
 - Trim leading/trailing `-`
-- Truncate to 90 chars
+- Truncate to 60 chars (see naming rules table above — not 90)
+- Enforce naming rules: must start with letter, reject reserved names, no consecutive/trailing hyphens, no numeric-leading
 
-Via MCP, check if `{default_owner}/{slug}` already exists. If yes → ask student for an alternate slug or refuse.
+If sanitization fails any rule → prompt student for a replacement immediately, before any MCP call. Do NOT silently rename.
+
+**Slug collision retry loop** — via MCP, check if `{default_owner}/{slug}` already exists. If yes:
+
+```
+⚠️ {default_owner}/{slug} already exists on GitHub.
+
+Suggestions:
+  1. {slug}-2
+  2. {slug}-{year}   (e.g., {slug}-2026)
+  3. eo-{slug}       (if not already prefixed)
+  4. Pick your own
+
+Reply with a number, or type a new slug (3-60 chars, lowercase ASCII,
+hyphens allowed, must start with a letter), or type "cancel" to exit.
+```
+
+Retry up to 3 times. On each retry, re-run sanitization + reserved-name check + existence check. After 3 collisions/invalid replies, refuse:
+
+```
+⚠️ Couldn't settle on a slug after 3 tries.
+
+Exit options:
+  - Think about naming offline, come back to /eo-github create when ready.
+  - Use Mode 2 (point-existing) if you already have a repo.
+  - Use the manual fallback (Step 2b) and name the repo in GitHub UI directly.
+
+No writes made.
+```
+
+Exit. This avoids an infinite prompt loop; the student owns the decision.
 
 Read description candidate:
 - First non-empty line of `$ROOT/../EO-Brain/1-ProjectBrain/positioning.md` (or search paths as in `eo-dev-start` Step 2)
@@ -360,16 +485,38 @@ Via MCP:
 
 Found: {commit_count} commits, last by {author} on {date}.
 
-This skill refuses to push onto a non-empty remote. Options:
-  - If those commits are yours and unrelated: push this project to a
-    different repo (mode 1 creates a new one).
-  - If those commits ARE this project's earlier state: use normal git
-    commands to merge/rebase — this skill won't guess the strategy.
+This skill refuses to push onto a non-empty remote (protects you from
+accidentally adopting someone else's work, and protects them from you
+force-pushing over theirs).
+
+Exit options (pick what describes your situation):
+
+  A. Those commits are mine but unrelated to this project.
+     → Use Mode 1: `/eo-github create` will make a fresh repo.
+
+  B. Those commits ARE this project's earlier state (you rebuilt locally
+     after an abandoned try, or restored from backup).
+     → Don't use this skill. Use normal git:
+         git remote add origin {html_url}
+         git fetch origin
+         git merge origin/main --allow-unrelated-histories
+         # resolve conflicts, then:
+         git push -u origin main
+       This skill refuses to guess the merge strategy — wrong guess loses work.
+
+  C. The remote repo was a mistake and you want to start it over.
+     → Delete it in GitHub UI (Settings → Delete this repository),
+       then re-run `/eo-github create`. Or use Mode 1 with a new slug.
+
+  D. You want to just nuke and re-push.
+     → Not supported here. This skill never force-pushes. If you really
+       want to overwrite the remote, do it explicitly with `git push --force`
+       outside this skill, understanding the risk.
 
 No writes made.
 ```
 
-Empty repo (or only an auto-generated README from GitHub UI) → proceed.
+Empty repo (or only an auto-generated README from GitHub UI, detected as single commit by `github-actions[bot]` or GitHub's web UI author) → proceed.
 
 Run the best-practices diff against the existing repo:
 
@@ -523,6 +670,17 @@ Invocation: `/eo-github audit`. Requires an existing origin (refuse if no origin
 
 Run in this exact order. If any sub-step fails, stop and roll back only what this invocation wrote (tracked with a manifest).
 
+**Transient-failure taxonomy** — every MCP call in Step 6 inspects the error shape before escalating:
+
+| Error | Action |
+|-------|--------|
+| 429 rate limit (Github API) | Read `X-RateLimit-Reset` / `Retry-After` if available. Print: "GitHub rate limit hit. Resets in {N} min. Re-run then." Exit cleanly. No rollback — nothing was written. |
+| 422 on `create_repo` (repo appeared between precheck and execute — race) | Re-run Step 5 Mode 1 slug collision retry loop once. The remote `{default_owner}/{slug}` now exists; treat it as a new collision and ask for an alternate slug. Do NOT adopt it silently — we can't tell if it's truly ours. |
+| 422 on settings write (invalid config combination, e.g., disabling squash+merge+rebase all at once) | Log the setting in the evidence table as "unapplied — {reason}"; continue with the next setting. Never abort Step 6b on a single 422. |
+| 403 with `secondary rate limit` signal | Print: "GitHub secondary rate limit hit (abuse detection). Wait 60 seconds then retry. If repeated, reduce tool parallelism." Exit cleanly. |
+| 5xx / timeout | Retry once after 5 seconds. On second failure, print the Step 4 network-error template and exit. |
+| All other errors | Refuse with the raw error message + manifest of what was and was not written so far, plus a recovery suggestion. |
+
 1. **Git init if needed:**
    ```
    if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -618,7 +776,15 @@ Label skipped:    {list or "none"}
 Deferred (apply later):
   - Branch protection on main (after first /eo-ship green CI)
   - CODEOWNERS enforcement ({"enabled on your plan" | "ignored on free/pro"})
-  - LICENSE ({"present" | "add when ready — MIT is the common default"})
+  - LICENSE — {status}:
+      {if present:}     present ({detected_name}) — no action needed
+      {if absent:}      no LICENSE in the repo. Three common MicroSaaS choices:
+                          • MIT       — permissive, copy/paste friendly (default pick)
+                          • Apache-2  — adds explicit patent grant (B2B SaaS)
+                          • Proprietary — add a `LICENSE` file saying
+                            "All rights reserved. Contact {owner} for licensing."
+                        Create via GitHub UI → Add file → Create new file →
+                        name `LICENSE` → "Choose a license template".
 
 Write failures (if any):
   {setting} — {reason} — fix manually in GitHub UI
@@ -661,7 +827,12 @@ Never auto-delete a GitHub repo. That's destructive and the student must confirm
 - **Applying branch protection on creation.** Protection rules can't require status checks that have never run. Always defer to post-first-CI automation.
 - **Renaming existing labels.** Mode 1 creates missing labels. Mode 4 adds missing labels. Neither renames or recolors existing labels — that's student UI drift territory, not bootstrap.
 - **Creating `dev` for solo students.** One extra branch = two extra merge decisions per feature for zero benefit. Trunk-only until collaborators appear.
-- **Creating a LICENSE for the student.** Licensing is a business decision. Evidence table prompts; student chooses.
+- **Creating a LICENSE for the student.** Licensing is a business decision. Evidence table prompts with MIT / Apache-2 / Proprietary named options + UI path; student chooses.
+- **Infinite retry loops.** Slug collision caps at 3 tries; rate limits exit cleanly with wait-time; secondary rate limit exits without thrashing.
+- **Silent adoption after 422-race.** If the repo appeared between precheck and create, treat it as a collision — ask for a new slug. Never push into a repo we didn't create this session.
+- **Rolling back state we didn't write.** If a call fails before any write, say "no writes made" — don't dramatize rollback theater.
+- **Conflating MCP-missing with MCP-auth-failed.** Two different fixes (install vs rotate PAT). Always distinguish before printing remediation.
+- **Leaving a refuse path without a door.** Every error has a concrete next command or manual runbook. A student must never see "can't help" with no door.
 
 ---
 
@@ -676,27 +847,53 @@ Never auto-delete a GitHub repo. That's destructive and the student must confirm
 
 ---
 
+## Stuck-state exits
+
+Every refuse path above names a concrete next door. Summary for the anxious student:
+
+| Stuck on | Do this |
+|----------|---------|
+| MCP not installed | Step 2 Case A → install MCP, OR Step 2b manual fallback (text runbook). Sprint work continues meanwhile. |
+| MCP auth failed (401/403) | Step 2 Case B → regenerate PAT, re-run. |
+| GitHub API 5xx / network | Wait 2 min, re-run. If persistent, check https://www.githubstatus.com/. |
+| Slug collision (Mode 1) | 3 retry attempts with suggestions. After 3 fails → pick offline, come back. |
+| Non-empty remote (Mode 2) | 4 labeled exits (A/B/C/D). Pick the one that matches your situation. |
+| Origin already set | Use normal `git push` or `/eo-ship`. If origin is wrong, `git remote set-url` manually then re-run. |
+| Push rejected (non-fast-forward) | `git pull --rebase origin main && git push -u origin main`. No force push. |
+| Rate limit 429 | Retry-After time printed. Re-run then. |
+| Create race (422) | Slug-collision loop re-fires. Pick another slug. |
+| First CI never runs | Branch protection stays deferred. No harm. `/eo-github audit` offers activation after each next ship. |
+
+If none of the above describes the situation → the student should run `/eo-guide` for a state-machine diagnostic, or re-read this section with the error message in hand.
+
+---
+
 ## Self-score protocol
 
 | # | Check | Threshold |
 |---|-------|-----------|
-| 1 | MCP precheck fired and refused when `mcp__github__*` missing | must pass |
-| 2 | Existing-origin precheck refused when origin is already set (Modes 1 & 2) | must pass |
-| 3 | Default owner read from MCP (never hardcoded) | must pass |
-| 4 | Plan-mode preview shown before any remote creation, `git remote add`, or settings write | must pass |
-| 5 | Visibility defaulted to `private` | must pass |
-| 6 | Mode 2 refused on non-empty remote (not force-pushed) | must pass |
-| 7 | Git init happened only when `.git` was absent | must pass |
-| 8 | First commit created only when no prior commit existed | must pass |
-| 9 | No force push anywhere in the path | must pass |
-| 10 | Evidence table post-success with repo URL + push sha | must pass |
-| 11 | Slug passed all naming rules (lowercase, length, reserved-list, no trailing hyphen) | must pass |
-| 12 | Plan detected before offering plan-locked features (required reviewers, CODEOWNERS enforcement) | must pass |
-| 13 | Branch strategy picked from collaborator count, not assumed | must pass |
-| 14 | Branch protection deferred to post-first-CI (not applied at creation) | must pass |
-| 15 | Mode 4 audit asked per-item `y/n` on drifted settings (no batch apply) | must pass |
-| 16 | Settings write failures logged in evidence table, alignment did not abort on first error | must pass |
-| 17 | `dev` branch created only when team strategy (≥2 collaborators) | must pass |
-| 18 | No LICENSE auto-created — prompt only | must pass |
+| 1 | MCP precheck fired and refused when `mcp__github__*` missing (Case A) | must pass |
+| 2 | MCP auth-failure routed to Case B with PAT-specific remediation (distinct from Case A) | must pass |
+| 3 | Manual fallback offered when student replies "manual" | must pass |
+| 4 | Existing-origin precheck refused when origin is already set (Modes 1 & 2) | must pass |
+| 5 | Default owner read from MCP (never hardcoded) | must pass |
+| 6 | Plan-mode preview shown before any remote creation, `git remote add`, or settings write | must pass |
+| 7 | Visibility defaulted to `private` | must pass |
+| 8 | Mode 2 refused on non-empty remote with 4 labeled exits (A/B/C/D) | must pass |
+| 9 | Git init happened only when `.git` was absent | must pass |
+| 10 | First commit created only when no prior commit existed | must pass |
+| 11 | No force push anywhere in the path | must pass |
+| 12 | Evidence table post-success with repo URL + push sha | must pass |
+| 13 | Slug passed all naming rules (lowercase, length, reserved-list, no trailing hyphen) | must pass |
+| 14 | Slug collision retry capped at 3 attempts with suggestions | must pass |
+| 15 | Plan detected before offering plan-locked features (required reviewers, CODEOWNERS enforcement) | must pass |
+| 16 | Branch strategy picked from collaborator count, not assumed | must pass |
+| 17 | Branch protection deferred to post-first-CI (not applied at creation) | must pass |
+| 18 | Mode 4 audit asked per-item `y/n` on drifted settings (no batch apply) | must pass |
+| 19 | Settings write failures logged in evidence table, alignment did not abort on first error | must pass |
+| 20 | `dev` branch created only when team strategy (≥2 collaborators) | must pass |
+| 21 | No LICENSE auto-created — evidence table prompts with 3 named options + UI path | must pass |
+| 22 | 429 / secondary rate limit / 422-race handled with named remediation, no rollback of unwritten state | must pass |
+| 23 | Every refuse path names a concrete next door (no terminal "stuck" state) | must pass |
 
-Threshold: 18/18. Below = bug → capture in `.claude/lessons.md`.
+Threshold: 23/23. Below = bug → capture in `.claude/lessons.md`.
