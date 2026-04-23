@@ -5,6 +5,50 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.2.0] — 2026-04-23
+
+### Added
+- **`/eo-dev-start` command + skill** — one-shot bootstrap for fresh EO MicroSaaS projects.
+  - Reads EO-Brain phases 0-4 (`1-ProjectBrain/`, `4-Architecture/`) as source of truth.
+  - Worktree-aware workspace root resolution (`$GIT_WORK_TREE` → `git rev-parse --show-toplevel`, never `pwd`).
+  - Scans 11 bootstrap signals, classifies state: `empty` | `partial` | `bootstrapped`.
+  - Plan-mode gate before any write — previews every file + template source + expected bytes.
+  - Routes `partial` → `/eo-dev-repair`, `bootstrapped` → `/eo-guide`. Refuses to re-bootstrap.
+  - Invokes `handover-bridge` only on approval. Emits evidence table (bytes + line counts) on completion.
+  - Bilingual (Arabic-first Gulf if `EO-Brain/_language-pref.md` = `ar`, English otherwise).
+- **`/eo-dev-repair` command + skill** — surgical triage for partially-bootstrapped projects.
+  - Classifies every missing signal into one of two classes:
+    - **Silent-repair-safe** (regeneratable from templates): `CLAUDE.md`, `.claude/lessons.md`, `.claude/settings.json`, `_dev-progress.md`, `.github/workflows/ci.yml`, `.env.example`, `.gitignore`, placeholder tests, `docs/ux-reference/`, doc subdirs.
+    - **Refuse-and-route** (must come from EO-Brain phases 0-4): `architecture/brd.md`, `architecture/tech-stack-decision.md`, `EO-Brain/1-ProjectBrain/{icp,brandvoice,positioning}.md`, EO-Brain itself.
+  - **Hard contract:** mixed state (some silent-repair-safe + some refuse-and-route missing) → refuse all repair. Surface the root cause. Partial repair masks upstream gaps.
+  - Plan-mode gate shows exact rebuild list before any write. Never overwrites existing files (lessons.md preserved if present).
+  - Failure rollback: manifest written before first write; on any mid-flight failure, deletes only files this invocation created.
+  - Commit message: `chore(repair): regenerate {list of files} via eo-dev-repair`.
+- **`eo-guide` v1.2** — phase detector routes new states to new commands:
+  - `pre-bootstrap` (truly empty project) → `/eo-dev-start` (supersedes the old "copy-paste Section 5 prompt" flow).
+  - `bootstrap-incomplete` (partial state) → `/eo-dev-repair`.
+  - Frontmatter + header version bumped 1.1 → 1.2.
+- **Simplified `EO-Brain/5-CodeHandover/README.md` Section 5** — the 75-line bootstrap prompt is replaced with a one-line pointer: `/eo-dev-start`. Zero copy-paste friction.
+
+### Changed
+- Plugin description updated to reference 12 commands + 10 skills (was 8 commands + 7 skills).
+- README file-layout diagram lists new commands/skills with v1.2.0 annotations.
+
+### Architecture note
+The new split cleanly separates concerns:
+- `/eo-dev-start` = happy-path bootstrap (empty → ready).
+- `/eo-dev-repair` = triage (partial → repaired or refused with remediation).
+- `/eo-guide` = router (any state → next correct command).
+
+This mirrors the smorch-dev pattern (`/smo-dev-start` → `/smo-dev-repair` → `/smo-dev-guide`) so engineers moving between EO and SMO see the same mental model.
+
+### Migration notes
+- **Existing v1.1.0 students:** `claude plugin update eo-microsaas-dev@eo-microsaas-training`. Bootstrapped projects are unaffected — `/eo-guide` continues to work. New projects use `/eo-dev-start` instead of the old copy-paste prompt.
+- **Students mid-bootstrap:** if a previous Section-5-prompt run left the project partial, run `/eo-dev-repair` — it will triage and either silently complete or tell you exactly which EO-Brain phase to finish.
+- **No breaking changes.** All prior commands and skills retain behavior.
+
+---
+
 ## [1.1.0] — 2026-04-21
 
 ### Added
