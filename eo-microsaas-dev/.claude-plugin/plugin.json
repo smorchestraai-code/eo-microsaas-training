@@ -1,7 +1,7 @@
 {
   "name": "eo-microsaas-dev",
-  "version": "1.1.0",
-  "description": "EO MicroSaaS Dev plugin for students — 7-pillar development workflow. 8 slash commands (plan, code, review, score, bridge-gaps, ship, debug, retro) + 7 skills. 5-hat scoring with student calibration (90+ ship gate). Self-improvement loop via .claude/lessons.md. MENA-specific checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Calibrated for solo founder reality (5-10 min scoring vs 30 min enterprise tools).",
+  "version": "1.2.0",
+  "description": "EO MicroSaaS Dev plugin for students — 7-pillar development workflow. 12 slash commands (plan, code, review, score, bridge-gaps, ship, debug, retro, guide, status, dev-start, dev-repair) + 10 skills. One-shot bootstrap via /eo-dev-start (reads EO-Brain phases 0-4, plan-mode gated), surgical repair via /eo-dev-repair (silent-repair-safe vs refuse-and-route). 5-hat scoring with student calibration (90+ ship gate). Cross-session resumability via /eo-guide. Self-improvement loop via .claude/lessons.md. MENA-specific checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Calibrated for solo founder reality (5-10 min scoring vs 30 min enterprise tools).",
   "author": {
     "name": "SMOrchestra.ai / Entrepreneurs Oasis MENA",
     "email": "smorchestra.ai@gmail.com"

@@ -1,12 +1,12 @@
 ---
 name: eo-guide
-description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
-version: "1.1"
+description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Routes to /eo-dev-start for fresh projects and /eo-dev-repair for partially-bootstrapped projects. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
+version: "1.2"
 ---
 
 # eo-guide — The Build-Phase Orchestrator
 
-**Version:** 1.1
+**Version:** 1.2 (2026-04-21 — adds bootstrap-aware routing to /eo-dev-start + /eo-dev-repair)
 **Pillar:** EO-specific — cross-chat continuity.
 **Purpose:** When a student opens a fresh Claude Code chat in a project — mid-sprint, 3 days after last session, or from a new machine — they type `/eo-guide` and get: where they are, what's next, how long it takes. Zero context-paste. The whole point is resumability.
 
@@ -77,8 +77,8 @@ Evaluate in order; first match wins:
 
 | Condition | Phase | Next command |
 |-----------|-------|--------------|
-| No `CLAUDE.md` | `pre-bootstrap` | Run the bootstrap prompt from `5-CodeHandover/README.md` (triggers `handover-bridge` skill) |
-| No `_dev-progress.md` OR no `.github/workflows/ci.yml` | `bootstrap-incomplete` | Re-run `handover-bridge` skill — 2 files missing from output contract |
+| No `CLAUDE.md` AND no `architecture/brd.md` AND no `.claude/lessons.md` (truly empty) | `pre-bootstrap` | `/eo-dev-start` — reads EO-Brain, plan-mode gate, invokes handover-bridge. Supersedes the old "copy-paste Section 5 prompt" flow. |
+| At least one but not all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, `.env.example`, `docs/ux-reference/` (partial state) | `bootstrap-incomplete` | `/eo-dev-repair` — triages missing pieces, silently repairs regeneratable files, refuses and routes when core artifacts (BRD, architecture, project-brain) are missing. |
 | No plan file for any ⬜ story | `ready-to-plan` | `/eo-plan Story-{N}-{slug}` for the first ⬜ story |
 | Plan exists, all tests `.skip` for target story | `ready-to-code` | `/eo-code` |
 | Tests pass for target story, no score file today | `ready-to-score` | `/eo-score` |
