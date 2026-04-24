@@ -193,6 +193,37 @@ Read and parse (no writes yet):
 | `mena_flag` | `1-ProjectBrain/icp.md` contains any of `Cairo Amman Riyadh Dubai UAE KSA MENA Arabic` → `true` | `false` |
 | `deploy_lane` | `4-Architecture/tech-stack-decision.md` key `deploy:` | `vercel` (safe default) |
 
+### Step 8b — Pick SaaSfast mode (M0–M3)
+
+SaaSfast is a toolkit, not a stack. Different products need different subsets. Read `SAASFAST-MODES.md` (side-car to this skill) and pick exactly one mode from M0–M3 based on the BRD + ICP.
+
+**Heuristic (first match wins):**
+
+| Signal in BRD / ICP | Mode |
+|---------------------|------|
+| Product is not a web app (CLI, internal-only, native mobile) | **M0 — None** |
+| Keywords: `directory`, `marketplace`, `content site`, `catalog`, `AppSumo-style`, `landing + browse` | **M1 — Backend-only** |
+| Distinct marketing pages + gated product behind auth | **M2 — Gate-only** |
+| Standard SaaS loop (login → dashboard → features, tables, admin-heavy) | **M3 — Core stack** |
+| Ambiguous | **M1 — Backend-only** (safe default: gets the boring stuff for free without boxing UX) |
+
+**Payment auto-swap:**
+- If BRD names a non-Stripe provider (Tap / HyperPay / Moyasar / PayTabs) → record `payment_provider=<name>`.
+- If ICP region is MENA and provider is unnamed → record `payment_provider=tap` (default for Gulf).
+- Otherwise → `payment_provider=stripe`.
+
+See `PAYMENT-PROVIDER-SWAPS.md` for the per-provider scaffold diff.
+
+**Record the decision** — will be written by `handover-bridge` to `$ROOT/architecture/tech-stack-decision.md` as:
+
+```
+SaaSfast mode: M1 — Backend-only
+Rationale: BRD describes a directory product (AppSumo-style browse + filter). Frontend is custom; backend pulls auth + payment + email + i18n/RTL from SaaSfast.
+Payment provider: tap (Gulf-first; stripe configured as intl fallback per BRD)
+```
+
+Every downstream command reads this line and respects the mode.
+
 ### Step 9 — Plan-mode preview (the approval gate)
 
 Enter plan mode. Print exactly this (English template shown; Arabic analog when `lang=ar`):
@@ -231,6 +262,8 @@ Identity applied:
   Stories         {story_count}
   ACs             {ac_count}
   Language        {lang}
+  SaaSfast mode   {mode_code} — {mode_name} ({one-line rationale})
+  Payment         {payment_provider}
 
 Will NOT:
   - Overwrite any existing file at {ROOT}
@@ -285,7 +318,7 @@ Writes performed in this step: zero. Everything is just parameter capture for St
 
 ### Step 10 — Invoke `handover-bridge`
 
-Pass the identity fields from Step 8 **and** `github_intent` from Step 9b to the `handover-bridge` skill. It uses `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
+Pass the identity fields from Step 8, the `saasfast_mode` + `payment_provider` from Step 8b, and `github_intent` from Step 9b to the `handover-bridge` skill. It uses `saasfast_mode` to pick which scaffold subset to install (see `handover-bridge/SKILL.md` Step 4), and `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
 
 Execute its 11-step sequence. If any step fails:
 - Log the failure to `$ROOT/.bootstrap-failures.log`
@@ -381,10 +414,12 @@ After every run, verify:
 | 7 | No writes before student approval | must pass |
 | 8 | GitHub-intent question asked when no origin was already set | must pass |
 | 9 | MCP presence detected (not assumed) before routing option 1/2/4 | must pass |
-| 10 | `handover-bridge` invoked with extracted identity (not defaults) + `github_intent` | must pass |
-| 11 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
-| 12 | `local-only` path skipped git init entirely | must pass |
-| 13 | Evidence table printed post-success with bytes + line counts | must pass |
-| 14 | Next command recommendation cites first Story slug from BRD | must pass |
+| 10 | SaaSfast mode picked (M0–M3) + one-line rationale recorded | must pass |
+| 11 | Payment provider resolved (Stripe or regional swap) from BRD or MENA default | must pass |
+| 12 | `handover-bridge` invoked with extracted identity + `saasfast_mode` + `payment_provider` + `github_intent` | must pass |
+| 13 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
+| 14 | `local-only` path skipped git init entirely | must pass |
+| 15 | Evidence table printed post-success with bytes + line counts | must pass |
+| 16 | Next command recommendation cites first Story slug from BRD | must pass |
 
-Threshold: 14/14. Below = bug → capture in `.claude/lessons.md`.
+Threshold: 16/16. Below = bug → capture in `.claude/lessons.md`.
