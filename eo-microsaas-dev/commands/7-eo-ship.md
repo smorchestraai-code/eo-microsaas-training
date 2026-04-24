@@ -56,6 +56,17 @@ Ship gate: ✅ pass (92) — shipped to {deploy_target}, health 200 OK.
 
 No 5-hat composites, no `aria-invalid`, no "setSession fragility" in founder view. Engineering detail stays in `docs/qa-scores/<timestamp>.md`.
 
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Canary / gradual rollout | `gstack:canary` | Skip — go straight to deploy (Weekend MVP default) |
+| Deploy orchestration | `gstack:land-and-deploy` | Internal: run project `deploy.sh` or `pm2 reload` per `CLAUDE.md` |
+| Branch-finish hygiene | `superpowers:finishing-a-development-branch` | Internal: merge + tag + delete branch |
+| PR body formatting | `gstack:/ship` PR template | Plugin default PR template |
+
+The founder never sees a "skill not installed" error. If a preferred skill is absent, the fallback path runs silently.
+
 ## Arguments
 
 `$ARGUMENTS` — optional: target env (default: production from project registry)

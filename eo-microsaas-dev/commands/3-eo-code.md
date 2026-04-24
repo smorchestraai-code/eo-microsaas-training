@@ -22,12 +22,23 @@ description: Execute a planned feature via TDD. Writes test first, then minimal 
 
 ```
 1. Verify plan exists (from /2-eo-dev-plan)
-2. For each AC:
-   a. Use superpowers:test-driven-development
-   b. If >1 file affected → superpowers:subagent-driven-development
-3. Run elegance-pause before final commit
-4. Stage + commit with conventional message + @AC-N.N refs
+2. Read architecture/tech-stack-decision.md → respect SaaSfast mode
+3. For each AC:
+   a. Red → green → blue via superpowers:test-driven-development
+      (fallback: internal TDD loop — red test first, minimal impl, refactor)
+   b. If >1 independent file → superpowers:subagent-driven-development
+      (fallback: sequential edits)
+4. Run elegance-pause before final commit
+5. Stage + commit with conventional message + @AC-N.N refs
 ```
+
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| TDD loop | `superpowers:test-driven-development` | Internal red→green→blue loop |
+| Parallel file edits | `superpowers:subagent-driven-development` | Sequential edits |
+| Elegance review | `elegance-pause` (ships with this plugin) | — (always present) |
 
 ## Arguments
 

@@ -43,3 +43,12 @@ None. `/8-eo-dev-repair` reads filesystem every time.
 | Any refuse-and-route item (BRD, architecture, project-brain) | Refuse with classified findings. No writes. Remediation = finish EO-Brain phase. |
 | All signals present | Route to `/eo-guide`. No writes. |
 | No signals present (empty) | Route to `/1-eo-dev-start`. No writes. |
+
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Deep inspection of the partial state | `gstack:investigate` | Internal 11-signal scan |
+| Plan-mode preview formatter | `superpowers:writing-plans` | Plugin default plan preview |
+
+Never surface "skill missing" to the founder. Repair runs either way.
