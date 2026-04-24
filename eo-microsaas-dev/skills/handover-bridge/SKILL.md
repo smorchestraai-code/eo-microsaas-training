@@ -175,12 +175,95 @@ for any UI work. `/2-eo-dev-plan` reads them when planning visual features.
 
 This is non-negotiable: a component shipped that doesn't match the artifact → UX hat Q1 drops to 6.
 
-### Step 4 — Scaffold src/ per tech stack
-If Next.js + Supabase (EO default):
+### Step 4 — Scaffold src/ per SaaSfast mode + tech stack
+
+**Inputs (passed from `eo-dev-start` Step 10):** `saasfast_mode` (M0/M1/M2/M3), `payment_provider`, `stack`, `mena_flag`.
+
+**Branch on mode** — see `../eo-dev-start/SAASFAST-MODES.md` for the full per-mode subset table.
+
+#### M0 — No SaaSfast
+Scaffold per `stack` only:
+- CLI → `npx create-node-cli@latest` or minimal `package.json` + `src/index.ts`
+- Static site → `npx create-astro@latest` or `src/` with HTML
+- API-only → minimal Express/Fastify setup
+- No payment, no email, no auth unless BRD calls for them
+
+#### M1 — Backend-only (default for directory/marketplace/content)
 ```bash
-npx create-next-app@latest src --typescript --tailwind --app --no-src-dir
+npx create-next-app@latest . --typescript --tailwind --app --no-src-dir
 ```
-Move generated files into place, don't nest.
+Then install only the backend subset of SaaSfast:
+- `src/lib/supabase/` — auth + RLS helpers (copied from SaaSfast-ar source, never edited in-place there)
+- `src/lib/payment/<provider>/` — per `payment_provider`, see `../eo-dev-start/PAYMENT-PROVIDER-SWAPS.md`
+- `src/lib/email/` — Resend wrapper + SendGrid fallback
+- `src/lib/i18n/` + `src/app/layout.tsx` RTL wiring when `mena_flag=true`
+
+**Do NOT scaffold** SaaSfast's marketing pages, auth UI pages, or dashboard. Founder builds custom frontend.
+
+#### M2 — Gate-only
+Everything from M1, plus:
+- `src/app/(marketing)/` — SaaSfast landing + pricing pages (edit in place, not upstream)
+- `src/app/(auth)/` — SaaSfast auth pages
+- `src/app/(app)/` — empty shell for custom app, middleware-gated
+
+#### M3 — Core stack
+Everything from M2, plus:
+- `src/app/(app)/dashboard/` — SaaSfast dashboard shell
+- `src/app/(app)/admin/` — SaaSfast admin shell
+- `src/components/ui/` — full SaaSfast component library
+
+**Record the decision** at the top of `$ROOT/architecture/tech-stack-decision.md`:
+
+```
+---
+SaaSfast mode: {M0|M1|M2|M3} — {mode name}
+Rationale: {one-line — why this mode for this product}
+Payment provider: {provider}
+Recorded: {date}
+---
+```
+
+Every downstream command (`/2-eo-dev-plan`, `/3-eo-code`, `/8-eo-dev-repair`) reads this block.
+
+### Step 4b — Install the EO-specific layer (M1/M2/M3 only; skip for M0)
+
+See `../eo-dev-start/EO-SPECIFIC-LAYER.md` for the full contract. Copy the 5 template sets:
+
+| Template source (inside this plugin) | Destination |
+|--------------------------------------|-------------|
+| `skills/eo-dev-start/eo-layer/founder-profile/` | `$ROOT/src/lib/founder-profile/` |
+| `skills/eo-dev-start/eo-layer/mena-defaults/` | `$ROOT/src/lib/mena-defaults/` |
+| `skills/eo-dev-start/eo-layer/distribution/` | `$ROOT/src/lib/distribution/` |
+| `skills/eo-dev-start/eo-layer/supabase-policies/` | `$ROOT/supabase/policies/` |
+| `skills/eo-dev-start/eo-layer/supabase-migrations/` | `$ROOT/supabase/migrations/` |
+
+If a destination file already exists → refuse; exit; route to `/8-eo-dev-repair`. Never overwrite silently.
+
+If the template directories don't yet exist in the plugin (early v1.4.0), degrade gracefully: print one line noting the layer will be added in a later release, continue scaffold. Do not block on missing EO-layer templates.
+
+### Step 4c — BRD post-process: Weekend MVP + v2 roadmap blocks
+
+After copying `architecture/brd.md` into the project, inject two framing blocks at the top if they are not already present.
+
+**Parse** the BRD for stories:
+- Count `## Story N` or `### Story N` headers → `story_count`.
+- Identify stories tagged `[@Phase2]` in their header → `phase2_stories`.
+- If no stories are tagged, heuristically mark stories 5+ as `phase2_stories` (and stories 1–4 as MVP).
+
+**Prepend (only if not already present — idempotent):**
+
+```markdown
+> **Weekend MVP — Stories 1–{min(story_count, 4)}.**
+> Ship the first {min(story_count, 4)} stories in one weekend. Email auth + one payment provider from this BRD. No SMS 2FA. No multi-tier pricing. No admin dashboard (Supabase Studio + Google Sheet until 50 customers).
+
+> **v2 Phase — Stories {phase2_range}.**
+> Everything tagged `[@Phase2]` in AC headers below is deferred. v2 entry point: `/2-eo-dev-plan story-{phase2_first}` after the MVP is live. The numbered chain continues without another bootstrap.
+```
+
+If `story_count ≤ 4` → inject only the Weekend MVP block; skip v2 block.
+If the BRD already has either marker verbatim → do not duplicate. Idempotent re-runs are fine (handover-bridge is one-shot, but `/8-eo-dev-repair` re-runs this post-process).
+
+**Tag ACs** deferred to v2: for each `phase2_stories`, append ` [@Phase2]` to every `AC-N.N` in that story if not already tagged. `brd-traceability` skill honors this tag when computing coverage — Phase 2 ACs don't count against MVP shipment.
 
 ### Step 5 — Generate placeholder tests from BRD
 For each `AC-N.N` in brd.md, generate:
@@ -263,7 +346,7 @@ Your first score gate: 90 composite or no ship.
 
 ---
 
-## Quality checks (before declaring handoff done) — HANDOVER READINESS 9/9
+## Quality checks (before declaring handoff done) — HANDOVER READINESS 12/12
 
 - [ ] Global playbook precondition passed (Step 0)
 - [ ] `CLAUDE.md` ≤ 150 lines (Boris discipline) with global-precedence note
@@ -274,8 +357,11 @@ Your first score gate: 90 composite or no ship.
 - [ ] `.gitignore` excludes `.env.local`, `node_modules/`, `.next/`
 - [ ] `.env.example` has NO real secrets
 - [ ] First commit lands on `main` or `dev` **(skipped when `github_intent=local-only` — counts as pass)**
+- [ ] `SaaSfast mode:` line present at top of `architecture/tech-stack-decision.md` (Step 4)
+- [ ] Scaffolded subset matches the recorded mode (no cross-mode leakage — e.g. no dashboard shell in an M1 project)
+- [ ] BRD has Weekend MVP block + v2 block (when `story_count > 4`) — Step 4c
 
-All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing to student.
+All 12 checks green = HANDOVER READINESS 12/12. Anything red → fix before handing to student.
 
 **Note:** for `github_intent=local-only` runs, the "first commit" check passes by virtue of the contract (no git repo → no commit required). All other 8 checks still apply.
 
@@ -299,3 +385,6 @@ All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing
 - **Adding a remote here:** `git remote add origin` is `eo-github`'s exclusive responsibility. Never set it in handover-bridge — that bypasses the plan-mode gate.
 - **Committing when `github_intent=local-only`:** No git repo exists. Creating one without the student asking undermines the "continue locally" choice.
 - **Pushing anything:** handover-bridge makes the first **local** commit only. Network operations belong to `eo-github` and `/7-eo-ship`.
+- **Scaffolding across modes:** An M1 project never gets SaaSfast's dashboard shell. Mode is the contract. Break it only via explicit `/8-eo-dev-repair` after the mode line in `tech-stack-decision.md` is updated.
+- **Editing SaaSfast-ar source:** Never. Copy the subset per mode into the project. Upstream stays pristine.
+- **Duplicating the BRD blocks:** Step 4c is idempotent. If the Weekend MVP / v2 markers are already present (student may have hand-authored them in EO-Brain), do not duplicate.
