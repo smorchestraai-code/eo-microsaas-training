@@ -14,6 +14,12 @@ Execute:
    - **refuse-and-route** — core artifacts from EO-Brain phases 0-4 (`architecture/brd.md`, `architecture/tech-stack-decision.md`, `1-ProjectBrain/icp.md`, `1-ProjectBrain/brandvoice.md`)
 4. If **any** refuse-and-route item is missing → print classified findings + remediation, exit without writes
 5. If **only** silent-repair-safe items are missing → enter plan mode, show what will be surgically repaired, request approval, execute, print evidence
+6. **Mode-consistency check** — read `SaaSfast mode:` from `architecture/tech-stack-decision.md`. Verify scaffold matches the recorded mode (no cross-mode leakage — e.g. no `src/app/(app)/dashboard/` in an M1 project). If drift found → surface it in the plan preview; student approves mode re-alignment explicitly.
+7. **Self-score the affected story** after repair:
+   - Re-invoke `eo-scorer` scoped to the files touched.
+   - ≥ 80 → repair accepted; write a one-line verdict to `docs/qa-scores/<timestamp>-repair.md`.
+   - < 80 → refuse to mark done; route to `/3-eo-code` with the specific failure reason.
+8. **Remote re-sync** — if a GitHub remote exists, `git fetch` + report drift (ahead/behind). Do not push silently; the student runs `/7-eo-ship` for that.
 
 Read language from project `CLAUDE.md` frontmatter or `EO-Brain/_language-pref.md`.
 

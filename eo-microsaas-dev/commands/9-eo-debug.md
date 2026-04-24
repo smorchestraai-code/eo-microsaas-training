@@ -10,12 +10,15 @@ description: Systematic root-cause debugging. Hypothesis → evidence → fix �
 ## What it does
 
 1. Capture the failure: exact error, reproduction steps, environment
-2. Run superpowers:systematic-debugging
+2. Run superpowers:systematic-debugging (degrades to internal hypothesis loop if the plugin is not installed)
 3. Form hypothesis, gather evidence, confirm/refute
 4. Fix at root cause (not symptom)
 5. Add a regression test tagged `@AC-N.N` or `@bug-NNN`
 6. Run elegance-pause on the fix
-7. Append lesson via lessons-manager if pattern
+7. **Self-score the affected AC** after the fix + tests are green:
+   - ≥ 80 → closed; write a one-line verdict to `docs/qa-scores/<timestamp>-debug.md`
+   - < 80 → keep the bug open, flag a follow-up in `_dev-progress.md` Notes column
+8. Append lesson via lessons-manager if pattern
 
 ## Workflow
 
@@ -53,8 +56,18 @@ description: Systematic root-cause debugging. Hypothesis → evidence → fix �
 
 **Elegance pause:** {Yes / tweaks}
 
+**Self-score (affected AC):** {composite} — {closed / follow-up flagged}
+
 **Lesson appended?** {Yes → L-NNN / No}
 ```
+
+## Founder-facing verdict (CEO brief)
+
+```
+Bug closed: ✅ root cause identified + regression test added. Score on affected AC: 88.
+```
+
+No 5-hat breakdown in founder view. Full report lives in `docs/qa-scores/<timestamp>-debug.md`.
 
 ## Anti-patterns blocked
 

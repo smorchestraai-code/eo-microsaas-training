@@ -9,32 +9,52 @@ description: Ship to production. Final guardrails before merge + deploy.
 
 ## What it does
 
-1. Verify score gate (90+ composite, no hat <8)
-2. Verify git hygiene (branch up to date, no uncommitted changes)
-3. Create PR with score report + review punch list attached
-4. Run final checks: `npm run build`, `npm test`, `npm audit --audit-level=high`
-5. If all green → merge + deploy per project's deploy script
-6. Post-deploy: hit `/api/health` to verify live
-7. Update `docs/qa-scores/trend.csv` with deploy marker
+1. **Self-score on HEAD** (final gate — re-run `eo-scorer` even if the student just ran `/5-eo-score`; code may have changed)
+2. Verify score gate (90+ composite, no hat <8). 80–89 → bounce to `/6-eo-bridge-gaps`. <80 → refuse + route to `/2-eo-dev-plan`.
+3. Verify git hygiene (branch up to date, no uncommitted changes)
+4. Create PR with score report + review punch list attached
+5. Run final checks: `npm run build`, `npm test`, `npm audit --audit-level=high`
+6. If all green → merge + deploy per project's deploy script
+7. Post-deploy: hit `/api/health` to verify live
+8. Push to GitHub remote (auto-invoke `eo-github` when remote exists; ask once if `github_intent=local-only` still active)
+9. Update `docs/qa-scores/trend.csv` with deploy marker
 
 ## Workflow
 
 ```
-1. Read latest docs/qa-scores/*.md → confirm 90+
-2. git fetch && git status → clean + up to date with base
-3. npm run build → must pass
-4. npm test → must pass
-5. npm audit --audit-level=high → must be 0 OR documented
-6. gh pr create with:
-   - Score report body
+1. Self-score: dispatch eo-scorer on HEAD → docs/qa-scores/<timestamp>.md
+2. Gate:
+   - composite ≥ 90 AND no hat < 8 → continue
+   - 80–89                         → refuse, route to /6-eo-bridge-gaps
+   - < 80                          → refuse, route to /2-eo-dev-plan rework
+3. git fetch && git status → clean + up to date with base
+4. npm run build → must pass
+5. npm test → must pass
+6. npm audit --audit-level=high → must be 0 OR documented
+7. gh pr create with:
+   - Score report body (CEO brief — no 5-hat composite table in PR UI)
    - BRD AC coverage list
    - Screenshots from mena-mobile-check + arabic-rtl-checker
    - Elegance pause block
-7. After merge: run deploy script from CLAUDE.md project registry
-8. Wait 10s → curl health endpoint → confirm 200
-9. If unhealthy → rollback + debug
-10. Commit score + deploy log to trend.csv
+8. After merge: run deploy script from CLAUDE.md project registry
+9. Wait 10s → curl health endpoint → confirm 200
+10. If unhealthy → rollback + debug
+11. Push to remote:
+    - remote exists → `git push origin <branch>`
+    - no remote + github_intent≠local-only → invoke eo-github once
+    - github_intent=local-only → ask once: "Ready to push to GitHub? (y/n)"
+12. Commit score + deploy log to trend.csv
 ```
+
+## Founder-facing verdict (CEO brief)
+
+One line before the full report:
+
+```
+Ship gate: ✅ pass (92) — shipped to {deploy_target}, health 200 OK.
+```
+
+No 5-hat composites, no `aria-invalid`, no "setSession fragility" in founder view. Engineering detail stays in `docs/qa-scores/<timestamp>.md`.
 
 ## Arguments
 
