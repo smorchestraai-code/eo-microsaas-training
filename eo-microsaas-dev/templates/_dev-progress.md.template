@@ -9,11 +9,15 @@ Last command: none
 
 ## Stories
 
-| # | Story | Status | Plan | Tests | Score | Shipped | Notes |
-|---|-------|--------|------|-------|-------|---------|-------|
-| 1 | {STORY_1_TITLE} | ⬜ not started | — | — | — | — | — |
-| 2 | {STORY_2_TITLE} | ⬜ not started | — | — | — | — | — |
-| 3 | {STORY_3_TITLE} | ⬜ not started | — | — | — | — | — |
+| # | Story | Phase | Status | Plan | Tests | Score | Shipped | Notes |
+|---|-------|-------|--------|------|-------|-------|---------|-------|
+| 1 | {STORY_1_TITLE} | MVP | ⬜ not started | — | — | — | — | — |
+| 2 | {STORY_2_TITLE} | MVP | ⬜ not started | — | — | — | — | — |
+| 3 | {STORY_3_TITLE} | MVP | ⬜ not started | — | — | — | — | — |
+| 4 | {STORY_4_TITLE} | MVP | ⬜ not started | — | — | — | — | — |
+| 5 | {STORY_5_TITLE} | v2 | 🧊 frozen | — | — | — | — | Deferred — tagged [@Phase2] |
+| 6 | {STORY_6_TITLE} | v2 | 🧊 frozen | — | — | — | — | Deferred — tagged [@Phase2] |
+| 7 | {STORY_7_TITLE} | v2 | 🧊 frozen | — | — | — | — | Deferred — tagged [@Phase2] |
 
 ## Status legend
 
@@ -31,15 +35,16 @@ Last command: none
 - Score < 80 → status cannot be `shipped`
 - `shipped` → must have both score ≥ 90 row AND deploy log entry
 - `coding` without a plan file = impossible; `/eo-guide` flags as inconsistent
+- Phase `v2` rows stay `🧊 frozen` until MVP is shipped. Unfreeze by editing the BRD `[@Phase2]` tag + running `/8-eo-dev-repair`.
 
-## MVP cadence (reference)
+## Cadence — weekend shipment
 
-Sprint = 1 story → live URL. MVP = 4–7 sprints. Don't conflate them.
+MVP = one weekend. Not 5 weeks.
 
-| Sprint | Weeks | Story target |
-|--------|-------|--------------|
-| 1 | Week 1 | Story 1 (+ Story 2 if simple) |
-| 2 | Week 2 | Stories 3–4 |
-| 3 | Week 3 | Stories 5–6 |
-| 4 | Week 4 | Story 7 + full QA |
-| 5 | Week 5 | Soft launch + 15 listings |
+| Day | Block | What ships |
+|-----|-------|-----------|
+| **Fri evening** | `/1-eo-dev-start` | Mode picked (M0–M3), scaffold landed, BRD carved into Weekend MVP + v2, tracker seeded |
+| **Saturday** | `/2-eo-dev-plan` → `/3-eo-code` | Stories 1–4 one at a time, TDD, elegance pause per commit |
+| **Sunday** | `/4-eo-review` → `/5-eo-score` → `/6-eo-bridge-gaps` → `/7-eo-ship` | Self-scored; 90+ ships to prod, deploy + health check, first 3 users told |
+
+After weekend — `/10-eo-retro` once, then v2 planning starts by flipping a `🧊 frozen` row to `⬜ not started` + running `/2-eo-dev-plan story-5`.

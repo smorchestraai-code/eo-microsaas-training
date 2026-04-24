@@ -74,6 +74,16 @@ leverage, synergy, ecosystem, holistic, digital transformation, innovative, cutt
 ## Voice
 Direct. Specific. Numbers over claims. Trust-first, pitch-second.
 
+### Founder-facing artifacts — CEO brief, not dev chatter
+Everything written into `docs/qa-scores/`, `docs/handovers/`, `docs/retros/`, and `_dev-progress.md` is read by the founder — not by an engineer. Write like a CPO briefs a CEO:
+
+- One-line verdict first (`Ship gate: ✅ pass (92)` — not a 5-hat composite table)
+- Numbers + decisions, not `aria-invalid` or "setSession fragility"
+- Engineering detail (stack traces, hat breakdowns, lint warnings) lives under `docs/engineering/`
+- Never expose the hidden plumbing (gstack, superpowers, subagent names) — the founder sees `/1-eo-dev-start` through `/10-eo-retro` + utilities, nothing else
+
+If the founder would need to Google a term to understand the line, rewrite it.
+
 ## Env vars
 See `.env.example`. Never commit `.env.local`.
 
