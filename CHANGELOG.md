@@ -16,6 +16,17 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-04-25
+
+### Added
+- **`eo-microsaas-dev` plugin 1.4.0** — weekend-shipment release. Numbered build chain 1–10 (visible sequence for non-technical founders). `/eo-freeze` + `/eo-unfreeze` edit-boundary helpers. SaaSfast mode picker (M0–M3) wired into `/1-eo-dev-start` + `handover-bridge`. BRD post-process injects Weekend MVP + v2 Phase framing. Self-scoring gates on `/7-eo-ship`, `/8-eo-dev-repair`, `/9-eo-debug`. gstack + superpowers wired as invisible plumbing with graceful degrade. CEO-voice enforced in founder-facing artifacts. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** `.claude-plugin/marketplace.json` metadata.version → 1.2.0. Plugin description rewritten around the weekend-shipment promise + full numbered chain.
+
+### Changed
+- No breaking changes. Existing projects on 1.3.x keep working with the un-numbered chain in their history. New projects scaffold with the numbered chain + mode-aware layer.
+
+---
+
 ## [1.1.0] — 2026-04-21
 
 ### Added
