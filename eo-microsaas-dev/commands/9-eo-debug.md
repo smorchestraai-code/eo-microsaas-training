@@ -2,7 +2,7 @@
 description: Systematic root-cause debugging. Hypothesis → evidence → fix → regression test.
 ---
 
-# /eo-debug
+# /9-eo-debug
 
 **Pillar:** Boris #6 — Autonomous Bug Fixing
 **When to run:** Bug report, failing test, production incident.

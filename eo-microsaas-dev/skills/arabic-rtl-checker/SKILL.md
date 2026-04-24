@@ -123,7 +123,7 @@ If output is non-empty → fail the check. Either refactor to `ms-*`/`me-*` or t
 ## Integration
 
 - **ux-hat Q2** uses this skill's checklist
-- **/eo-review** runs this check on any PR touching `src/components/**/*.tsx`
+- **/4-eo-review** runs this check on any PR touching `src/components/**/*.tsx`
 - **lessons-manager** captures repeat RTL failures as lessons
 
 ---

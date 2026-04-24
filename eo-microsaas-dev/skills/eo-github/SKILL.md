@@ -8,7 +8,7 @@ version: "1.0"
 
 **Version:** 1.0 (2026-04-23)
 **Pillar:** EO-specific — owns every remote-touching operation so bootstrap stays local-safe.
-**Purpose:** The only skill in the plugin allowed to create or wire up a GitHub remote. `/eo-dev-start` routes here when a student explicitly asks for GitHub. Students can also invoke directly after local trial work.
+**Purpose:** The only skill in the plugin allowed to create or wire up a GitHub remote. `/1-eo-dev-start` routes here when a student explicitly asks for GitHub. Students can also invoke directly after local trial work.
 
 **Hard contracts:**
 - Never runs without GitHub MCP (`mcp__github__*`) connected. If missing → refuse with remediation.
@@ -21,7 +21,7 @@ version: "1.0"
 
 ## Why this skill exists
 
-`/eo-dev-start` is local-only by design (students trial 3 times before "this is the one" — we don't want three abandoned repos polluting the org). GitHub ops are isolated here so:
+`/1-eo-dev-start` is local-only by design (students trial 3 times before "this is the one" — we don't want three abandoned repos polluting the org). GitHub ops are isolated here so:
 
 1. The bootstrap flow stays cheap to retry.
 2. Every remote write is an explicit, reviewed action.
@@ -66,7 +66,7 @@ Student already made the repo on GitHub and wants this local workspace wired to 
 
 ### Mode 3 — `guided`
 
-Triggered when student picked "I don't know" in `/eo-dev-start`'s 4-option question AND GitHub MCP is connected. Explains create vs point-existing in one screen, asks the student to pick, then hands off to Mode 1 or Mode 2.
+Triggered when student picked "I don't know" in `/1-eo-dev-start`'s 4-option question AND GitHub MCP is connected. Explains create vs point-existing in one screen, asks the student to pick, then hands off to Mode 1 or Mode 2.
 
 ### Mode 4 — `audit` (admin maintenance)
 
@@ -78,7 +78,7 @@ Invokable any time post-setup as `/eo-github audit`. Reads current repo state vi
 
 Only writes on explicit `y` per drifted setting. Never batch-fixes without per-item approval when the fix is non-trivial (protected branch rules, collaborator changes).
 
-Runs automatically after the first `/eo-ship` to offer branch protection activation (see "Post-first-CI automation" below).
+Runs automatically after the first `/7-eo-ship` to offer branch protection activation (see "Post-first-CI automation" below).
 
 ---
 
@@ -114,7 +114,7 @@ Plan detection is non-blocking — if MCP can't resolve the plan, default to `fr
 
 Detect collaborators via MCP (`list_collaborators` or equivalent):
 
-- **Solo (≤1 collaborator including owner) → trunk-only:** default branch `main`. Feature branches named `feat/*`, `fix/*`, `chore/*`. Merge back to `main` via PR. No long-lived `dev`. This matches the EO `/eo-ship` flow — main is always shippable.
+- **Solo (≤1 collaborator including owner) → trunk-only:** default branch `main`. Feature branches named `feat/*`, `fix/*`, `chore/*`. Merge back to `main` via PR. No long-lived `dev`. This matches the EO `/7-eo-ship` flow — main is always shippable.
 - **Team (≥2 collaborators) → dual-branch:** default branch `main` (production), auxiliary branch `dev` (integration). Feature branches merge to `dev`; `dev` merges to `main` on release. CI runs on PRs to both.
 
 ### What the skill creates
@@ -130,9 +130,9 @@ The plan-mode preview always shows the branch plan explicitly. If the student is
 
 ### Post-first-CI automation
 
-Branch protection can only require status checks that have *actually run at least once*. On first `/eo-ship` success:
+Branch protection can only require status checks that have *actually run at least once*. On first `/7-eo-ship` success:
 
-1. `/eo-ship` signals to `eo-github` (via a marker file or direct invocation) that CI has passed.
+1. `/7-eo-ship` signals to `eo-github` (via a marker file or direct invocation) that CI has passed.
 2. `eo-github audit` runs and offers:
    ```
    ✅ CI passed for the first time.
@@ -207,7 +207,7 @@ Topics help discoverability within the student's own org listing and signal the 
 | `blocked` | `#b60205` | Waiting on external decision or dep |
 | `needs-info` | `#fbca04` | Can't act without more detail from reporter |
 | `mena` | `#0e8a16` | MENA-specific (RTL, locale, payment rails) |
-| `score-gap` | `#c5def5` | Raised during `/eo-score` — track which hat |
+| `score-gap` | `#c5def5` | Raised during `/5-eo-score` — track which hat |
 
 Skip labels that already exist (GitHub creates `bug`, `enhancement` by default — don't duplicate; just add the new ones).
 
@@ -219,10 +219,10 @@ If no `LICENSE` file exists in the local scaffold → do NOT auto-create one. Pr
 
 | Deferred setting | Why | When student handles it |
 |---|---|---|
-| Branch protection on `main` | Requires at least one CI run to define required status checks | After first `/eo-ship` succeeds and CI runs once — evidence table prompts the student |
+| Branch protection on `main` | Requires at least one CI run to define required status checks | After first `/7-eo-ship` succeeds and CI runs once — evidence table prompts the student |
 | CODEOWNERS | Needs human judgment on who reviews what | When the project has ≥2 contributors |
 | Security policy (`SECURITY.md`) | Template should be chosen by student | After first private beta |
-| Environments & secrets | Depend on deploy lane (Vercel vs Contabo) | During `/eo-ship` → `/eo-deploy` flow |
+| Environments & secrets | Depend on deploy lane (Vercel vs Contabo) | During `/7-eo-ship` flow (deploy step runs the project's own deploy script) |
 | Dependabot | Opinionated | Student enables in GitHub UI if desired |
 
 The evidence table at Step 7 tells the student which of these are worth doing next.
@@ -278,10 +278,10 @@ If output is non-empty → refuse:
 Current origin: {existing_url}
 
 This skill refuses to overwrite an existing remote. Options:
-  - If that remote is correct: use normal git commands (git push, /eo-ship)
+  - If that remote is correct: use normal git commands (git push, /7-eo-ship)
   - If it's wrong: manually `git remote set-url origin <correct>` then
     re-run /eo-github to push your current state.
-  - If you need a completely fresh start: see /eo-dev-repair.
+  - If you need a completely fresh start: see /8-eo-dev-repair.
 
 No writes made.
 ```
@@ -616,7 +616,7 @@ Labels added:     {list or "none — all already present"}
 Label skipped:    {list or "none"}
 
 Deferred (apply later):
-  - Branch protection on main (after first /eo-ship green CI)
+  - Branch protection on main (after first /7-eo-ship green CI)
   - CODEOWNERS enforcement ({"enabled on your plan" | "ignored on free/pro"})
   - LICENSE ({"present" | "add when ready — MIT is the common default"})
 
@@ -625,7 +625,7 @@ Write failures (if any):
 
 Next:
   - /eo-guide will now detect your GitHub remote on next run
-  - /eo-ship will push to this remote from now on
+  - /7-eo-ship will push to this remote from now on
   - /eo-github audit  — re-check settings anytime
   - Flip to public when ready: GitHub UI → Settings → General → Visibility
 ```
@@ -672,7 +672,7 @@ Never auto-delete a GitHub repo. That's destructive and the student must confirm
 | `eo-dev-start` | Routes here when student picks option 1, 2, or 4+MCP. Passes mode hint. |
 | `eo-guide` | Detects presence of GitHub remote and adjusts phase labels. Never invokes this skill directly. |
 | `eo-dev-repair` | Never calls this skill. Remote state is not repairable — student runs `/eo-github` manually when ready. |
-| `handover-bridge` | Independent. `handover-bridge` is git-aware but does not assume a remote. If remote exists when it runs, the first commit lands and push is deferred to `/eo-ship`. |
+| `handover-bridge` | Independent. `handover-bridge` is git-aware but does not assume a remote. If remote exists when it runs, the first commit lands and push is deferred to `/7-eo-ship`. |
 
 ---
 

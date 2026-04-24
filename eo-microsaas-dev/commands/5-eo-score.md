@@ -2,10 +2,10 @@
 description: Run 5-hat composite score. Non-negotiable gate — 90+ to ship.
 ---
 
-# /eo-score
+# /5-eo-score
 
 **Pillar:** EO Pillar #7 — Score+Ship
-**When to run:** After `/eo-review` is clean. Before merge.
+**When to run:** After `/4-eo-review` is clean. Before merge.
 
 ## What it does
 
@@ -13,8 +13,8 @@ description: Run 5-hat composite score. Non-negotiable gate — 90+ to ship.
 2. Score all 5 hats (Product, Architecture, Engineering, QA, UX)
 3. Compute composite = sum × 2 (10-100 scale)
 4. Decision gate:
-   - **90+** → ship (run `/eo-ship`)
-   - **80-89** → run bridge-gaps to fix the lowest hat
+   - **90+** → ship (run `/7-eo-ship`)
+   - **80-89** → run `/6-eo-bridge-gaps` to fix the lowest hat
    - **<80** → don't ship. Major rework needed.
 5. Save report to `docs/qa-scores/YYYY-MM-DD-HHMM.md`
 6. Append row to `docs/qa-scores/trend.csv`
@@ -57,14 +57,14 @@ description: Run 5-hat composite score. Non-negotiable gate — 90+ to ship.
 
 **Decision: Ship**
 
-Run /eo-ship when ready.
+Run /7-eo-ship when ready.
 ```
 
 ## After scoring — update tracker
 
 Update `_dev-progress.md` row for this story:
 - `Score` = composite (e.g., `90`)
-- `Status` = `✅ shipped` only if decision was Ship AND `/eo-ship` has been run; else `🧪 scoring` (90+ waiting to ship) or `🩹 bridging gaps` (80–89) or `⚠️ blocked` (<80)
-- `Last updated` = today; `Last command` = `/eo-score`
+- `Status` = `✅ shipped` only if decision was Ship AND `/7-eo-ship` has been run; else `🧪 scoring` (90+ waiting to ship) or `🩹 bridging gaps` (80–89) or `⚠️ blocked` (<80)
+- `Last updated` = today; `Last command` = `/5-eo-score`
 
-Never set `Status` = `shipped` from this command — only `/eo-ship` moves it there.
+Never set `Status` = `shipped` from this command — only `/7-eo-ship` moves it there.

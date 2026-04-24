@@ -1,7 +1,7 @@
 # Dev Progress — {PROJECT_NAME}
 
 > Tracker for `/eo-guide`. Filesystem is the source of truth; this file is a view.
-> Every `/eo-*` command writes here at end-of-run. `/eo-guide` reconciles drift.
+> Every numbered command (`/1-eo-dev-start` through `/10-eo-retro`) writes here at end-of-run. `/eo-guide` reconciles drift.
 
 Last updated: {DATE}
 Current sprint: {SPRINT_NUMBER}
@@ -20,8 +20,9 @@ Last command: none
 - ⬜ not started — no plan file yet
 - 📝 planned — `docs/plans/story-N-*.md` exists, tests still `.skip`
 - 🔨 coding — tests being written/passed
-- 🧪 scoring — tests pass, awaiting `/eo-score`
-- 🩹 bridging gaps — score 80–89, `/eo-bridge-gaps` running
+- 🧪 scoring — tests pass, awaiting `/5-eo-score`
+- 🩹 bridging gaps — score 80–89, `/6-eo-bridge-gaps` running
+- 🧊 frozen — deferred to v2 (tagged `[@Phase2]` in BRD). Skipped in Weekend MVP.
 - ✅ shipped — merged to main + deployed
 - ⚠️ inconsistent — state checks failed, see `/eo-guide` diagnostic
 

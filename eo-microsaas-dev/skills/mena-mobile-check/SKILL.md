@@ -129,7 +129,7 @@ If this protocol isn't evidenced in the PR: **UX hat caps at 6**.
 ## Integration
 
 - **ux-hat Q1, Q7, Q8** use this checklist
-- **/eo-review** runs visual check on any PR touching `src/**/*.tsx`
+- **/4-eo-review** runs visual check on any PR touching `src/**/*.tsx`
 - **lessons-manager** captures mobile regressions
 - **/eo-qa** runs Playwright tests at 375px viewport
 

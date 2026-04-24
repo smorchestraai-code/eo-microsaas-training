@@ -2,10 +2,10 @@
 description: Fix the lowest-scoring hat when composite is 80-89. Turns a "blocked" PR into a "ship-ready" one.
 ---
 
-# /eo-bridge-gaps
+# /6-eo-bridge-gaps
 
 **Pillar:** EO Pillar #7 — Score+Ship (recovery arm)
-**When to run:** `/eo-score` returned 80-89. Need to lift weakest hat to 8+ to reach ship gate.
+**When to run:** `/5-eo-score` returned 80-89. Need to lift weakest hat to 8+ to reach ship gate.
 
 ## What it does
 
@@ -16,7 +16,7 @@ description: Fix the lowest-scoring hat when composite is 80-89. Turns a "blocke
 5. Generate fix plan: ordered list of changes to reach ≥8
 6. Auto-fix what's safe (missing alt text, missing types, etc.)
 7. Flag what needs human judgment (design changes, arch decisions)
-8. Re-run `/eo-score` on the target hat after fixes
+8. Re-run `/5-eo-score` on the target hat after fixes
 
 ## Workflow
 
@@ -34,8 +34,8 @@ description: Fix the lowest-scoring hat when composite is 80-89. Turns a "blocke
 4. Apply AUTO fixes
 5. Prompt user for REVIEW items
 6. Re-score target hat
-7. If ≥8 → return to /eo-score for full recompute
-8. If still <8 → loop, or escalate to /eo-plan rework
+7. If ≥8 → return to /5-eo-score for full recompute
+8. If still <8 → loop, or escalate to /2-eo-dev-plan rework
 ```
 
 ## Arguments
@@ -68,8 +68,8 @@ Applying A/A → hat lifts from 6 → 8.5 (ship-ready)
 ## After bridging — update tracker
 
 Update `_dev-progress.md` row for this story:
-- `Status` = `🩹 bridging gaps` (still fixing) or `🧪 scoring` (fixes applied, ready for `/eo-score` re-run)
+- `Status` = `🩹 bridging gaps` (still fixing) or `🧪 scoring` (fixes applied, ready for `/5-eo-score` re-run)
 - `Notes` = which hat was bridged + 1-line change summary (e.g., `QA 6→8.5: added empty-state tests`)
-- `Last updated` = today; `Last command` = `/eo-bridge-gaps {hat}`
+- `Last updated` = today; `Last command` = `/6-eo-bridge-gaps {hat}`
 
-Don't set `Status` = `✅ shipped` here — only `/eo-ship` does that, after a clean `/eo-score` ≥90.
+Don't set `Status` = `✅ shipped` here — only `/7-eo-ship` does that, after a clean `/5-eo-score` ≥90.

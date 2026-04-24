@@ -2,10 +2,10 @@
 description: Self-review a PR or working branch. Catches bugs, security, Arabic RTL, mobile issues.
 ---
 
-# /eo-review
+# /4-eo-review
 
 **Pillar:** Boris #4 — Verification Before Done
-**When to run:** After `/eo-code`, before `/eo-score`.
+**When to run:** After `/3-eo-code`, before `/5-eo-score`.
 
 ## What it does
 
@@ -52,5 +52,5 @@ description: Self-review a PR or working branch. Catches bugs, security, Arabic 
 ### 🟢 Nice to have
 - …
 
-**Ready for /eo-score?** (fix 🔴 first)
+**Ready for /5-eo-score?** (fix 🔴 first)
 ```

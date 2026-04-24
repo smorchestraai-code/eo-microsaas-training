@@ -11,7 +11,7 @@ Execute the returning-student sequence:
 2. Read language preference from project `CLAUDE.md` frontmatter, `MENA:` flag, or `.claude/settings.json`
 3. Run filesystem scan — collect all 10 signals
 4. Evaluate phase detection state machine (first match wins)
-5. Trigger safety rail (Mode 3) if state is inconsistent — never recommend `/eo-ship` or destructive action
+5. Trigger safety rail (Mode 3) if state is inconsistent — never recommend `/7-eo-ship` or destructive action
 6. Reconcile `_dev-progress.md` + log any diff
 7. Print one-screen recommendation: phase + next command + ETA + story + sprint
 

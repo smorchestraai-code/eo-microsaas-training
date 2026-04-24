@@ -2,10 +2,10 @@
 description: Ship to production. Final guardrails before merge + deploy.
 ---
 
-# /eo-ship
+# /7-eo-ship
 
 **Pillar:** EO Pillar #7 — Score+Ship
-**When to run:** `/eo-score` returned 90+. Ready to merge.
+**When to run:** `/5-eo-score` returned 90+. Ready to merge.
 
 ## What it does
 
@@ -42,7 +42,7 @@ description: Ship to production. Final guardrails before merge + deploy.
 
 ## Blocks
 
-- Score <90 → blocked, go back to bridge-gaps or /eo-code
+- Score <90 → blocked, go back to /6-eo-bridge-gaps or /3-eo-code
 - Uncommitted changes → blocked
 - Build/test/audit failure → blocked
 - Health check fail post-deploy → auto-rollback + create incident in docs/incidents/
@@ -64,9 +64,9 @@ Trend.csv updated.
 ## After ship — update tracker
 
 Update `_dev-progress.md` row for this story:
-- `Status` = `✅ shipped` (only `/eo-ship` can set this)
+- `Status` = `✅ shipped` (only `/7-eo-ship` can set this)
 - `Shipped` = today's date (YYYY-MM-DD)
 - `Notes` = commit sha + deploy target (e.g., `a1b2c3d → vercel prod`)
-- `Last updated` = today; `Last command` = `/eo-ship`
+- `Last updated` = today; `Last command` = `/7-eo-ship`
 
-If the deploy or health-check failed → DO NOT set `✅ shipped`. Set `Status` = `⚠️ blocked` and `Notes` = rollback reason. `/eo-guide` will route back to debug.
+If the deploy or health-check failed → DO NOT set `✅ shipped`. Set `Status` = `⚠️ blocked` and `Notes` = rollback reason. `/eo-guide` will route back to `/9-eo-debug`.

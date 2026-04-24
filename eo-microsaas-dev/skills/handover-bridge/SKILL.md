@@ -120,7 +120,7 @@ Include at the bottom: a precedence note — "Global playbook is at `~/.claude/C
 
 ### Step 3 — Initialize git (conditional on `github_intent`)
 
-`handover-bridge` accepts a `github_intent` parameter from `/eo-dev-start` Step 9b. Values:
+`handover-bridge` accepts a `github_intent` parameter from `/1-eo-dev-start` Step 9b. Values:
 
 | `github_intent` | Git init? | Remote? | First commit? |
 |-----------------|-----------|---------|---------------|
@@ -163,8 +163,8 @@ Generate `docs/ux-reference/ARTIFACT-INDEX.md` mapping each artifact to the BRD 
 # UX Reference Artifacts
 
 These are the UX ground truth from EO-Brain Phase 5. Use them as the target
-for any UI work. `/eo-plan` reads them when planning visual features.
-`/eo-review` UX hat compares rendered components against these.
+for any UI work. `/2-eo-dev-plan` reads them when planning visual features.
+`/4-eo-review` UX hat compares rendered components against these.
 
 | Artifact | Covers BRD stories | What to match |
 |----------|-------------------|---------------|
@@ -246,7 +246,7 @@ if git rev-parse --show-toplevel >/dev/null 2>&1; then
 fi
 ```
 
-**Never push.** If the student chose `create` / `point-existing` / `guided`, `eo-github` will be invoked next (by `/eo-dev-start` Step 10b) and it owns the push. If the student chose `already-wired`, `/eo-ship` handles the first release push.
+**Never push.** If the student chose `create` / `point-existing` / `guided`, `eo-github` will be invoked next (by `/1-eo-dev-start` Step 10b) and it owns the push. If the student chose `already-wired`, `/7-eo-ship` handles the first release push.
 
 ### Step 10 — Print next-step banner
 ```
@@ -255,7 +255,7 @@ fi
 Next steps:
   1. cd {ProjectName}
   2. Open in Claude Code: claude
-  3. Run: /eo-plan
+  3. Run: /2-eo-dev-plan
   4. Start sprint 1 from architecture/technical-roadmap.md
 
 Your first score gate: 90 composite or no ship.
@@ -298,4 +298,4 @@ All 9 checks green = HANDOVER READINESS 9/9. Anything red → fix before handing
 - **CLAUDE.md bloat:** If you're over 150 lines, remove generic advice. Keep only project-specific rules.
 - **Adding a remote here:** `git remote add origin` is `eo-github`'s exclusive responsibility. Never set it in handover-bridge — that bypasses the plan-mode gate.
 - **Committing when `github_intent=local-only`:** No git repo exists. Creating one without the student asking undermines the "continue locally" choice.
-- **Pushing anything:** handover-bridge makes the first **local** commit only. Network operations belong to `eo-github` and `/eo-ship`.
+- **Pushing anything:** handover-bridge makes the first **local** commit only. Network operations belong to `eo-github` and `/7-eo-ship`.

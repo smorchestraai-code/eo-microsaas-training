@@ -22,11 +22,11 @@ Each fixture must produce the expected phase and next-command output. Divergence
 |---|------|-------|------------------------|--------------|
 | 01 | `01-pre-bootstrap.tar.gz` | `pre-bootstrap` | Run the bootstrap prompt from `5-CodeHandover/README.md` | 15–20 min |
 | 02 | `02-bootstrap-incomplete.tar.gz` | `bootstrap-incomplete` | Re-run `handover-bridge` — `.github/workflows/ci.yml` or `_dev-progress.md` missing | 5 min |
-| 03 | `03-ready-to-plan.tar.gz` | `ready-to-plan` | `/eo-plan Story-1-signup` | 15 min |
-| 04 | `04-ready-to-code.tar.gz` | `ready-to-code` | `/eo-code` | 45–90 min |
-| 05 | `05-ready-to-score.tar.gz` | `ready-to-score` | `/eo-score` | 5 min |
-| 06 | `06-bridging-gaps.tar.gz` | `bridging-gaps` | `/eo-bridge-gaps` | 30 min |
-| 07 | `07-ready-to-ship.tar.gz` | `ready-to-ship` | `/eo-ship` | 10 min |
+| 03 | `03-ready-to-plan.tar.gz` | `ready-to-plan` | `/2-eo-dev-plan Story-1-signup` | 15 min |
+| 04 | `04-ready-to-code.tar.gz` | `ready-to-code` | `/3-eo-code` | 45–90 min |
+| 05 | `05-ready-to-score.tar.gz` | `ready-to-score` | `/5-eo-score` | 5 min |
+| 06 | `06-bridging-gaps.tar.gz` | `bridging-gaps` | `/6-eo-bridge-gaps` | 30 min |
+| 07 | `07-ready-to-ship.tar.gz` | `ready-to-ship` | `/7-eo-ship` | 10 min |
 | 08 | `08-inconsistent.tar.gz` | `inconsistent` | Mode 3 diagnostic — NO ship recommendation | — |
 
 ## Building a fixture

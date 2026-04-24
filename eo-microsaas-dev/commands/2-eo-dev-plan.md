@@ -2,7 +2,7 @@
 description: Plan a feature before coding. Reads BRD, past lessons, and drafts an approach.
 ---
 
-# /eo-plan
+# /2-eo-dev-plan
 
 **Pillar:** Boris #1 — Plan Mode Default
 **When to run:** Before writing any code for a new feature.
@@ -60,6 +60,6 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 Before exiting plan mode, update `_dev-progress.md`:
 - Find the row for the target story (or add it if missing).
 - Set `Status` = `📝 planned`, `Plan` = `✓`, `Notes` = plan filename.
-- Set top-level `Last updated` to today, `Last command` to `/eo-plan {story}`.
+- Set top-level `Last updated` to today, `Last command` to `/2-eo-dev-plan {story}`.
 
 Filesystem is truth — `/eo-guide` will reconcile if you slip.

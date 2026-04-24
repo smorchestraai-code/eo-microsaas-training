@@ -2,10 +2,10 @@
 description: Execute a planned feature via TDD. Writes test first, then minimal impl, then refactors.
 ---
 
-# /eo-code
+# /3-eo-code
 
 **Pillar:** Boris #2 (Subagent) + #5 (Elegance) — via superpowers TDD
-**When to run:** After `/eo-plan` is approved.
+**When to run:** After `/2-eo-dev-plan` is approved.
 
 ## What it does
 
@@ -21,7 +21,7 @@ description: Execute a planned feature via TDD. Writes test first, then minimal 
 ## Workflow
 
 ```
-1. Verify plan exists (from /eo-plan)
+1. Verify plan exists (from /2-eo-dev-plan)
 2. For each AC:
    a. Use superpowers:test-driven-development
    b. If >1 file affected → superpowers:subagent-driven-development
@@ -42,6 +42,6 @@ description: Execute a planned feature via TDD. Writes test first, then minimal 
 ## After green — update tracker
 
 Update `_dev-progress.md` row for this story:
-- `Status` = `🔨 coding` (still coding) or `🧪 scoring` (all ACs green, time to `/eo-score`)
+- `Status` = `🔨 coding` (still coding) or `🧪 scoring` (all ACs green, time to `/5-eo-score`)
 - `Tests` = `{passing}/{total} passing`
-- `Last updated` = today; `Last command` = `/eo-code {arg}`
+- `Last updated` = today; `Last command` = `/3-eo-code {arg}`
