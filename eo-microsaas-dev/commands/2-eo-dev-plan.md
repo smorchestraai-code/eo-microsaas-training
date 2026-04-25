@@ -2,7 +2,7 @@
 description: Plan a feature before coding. Reads BRD, past lessons, and drafts an approach.
 ---
 
-# /eo-plan
+# /2-eo-dev-plan
 
 **Pillar:** Boris #1 — Plan Mode Default
 **When to run:** Before writing any code for a new feature.
@@ -22,11 +22,24 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 2. Parse $ARGUMENTS as feature name / BRD story number
 3. Cat `.claude/lessons.md` → surface relevant lessons
 4. Cat `architecture/brd.md` → extract ACs for this story
-5. If MENA ICP → note arabic-rtl-checker + mena-mobile-check will apply
-6. Use superpowers:writing-plans to draft
-7. Present plan, wait for user approval
-8. On approval: exit plan mode, begin superpowers:test-driven-development
+5. Read `architecture/tech-stack-decision.md` → respect the recorded SaaSfast mode
+6. Read side-car SOPs if present: `skills/eo-dev-start/SAASFAST-MODES.md`, `PAYMENT-PROVIDER-SWAPS.md`
+7. If MENA ICP → note arabic-rtl-checker + mena-mobile-check will apply
+8. Draft the plan (prefer superpowers:writing-plans if installed; internal drafter otherwise)
+9. Optional CEO review pass (gstack:plan-ceo-review if installed) — rewrites plan for founder readability
+10. Present plan, wait for user approval
+11. On approval: exit plan mode, begin superpowers:test-driven-development (or /3-eo-code's internal TDD loop if superpowers absent)
 ```
+
+## Hidden plumbing (graceful degrade)
+
+Skills tried in order, fallback is always local logic — the founder never sees a failure:
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Draft plan | `superpowers:writing-plans` | Internal plan drafter |
+| CEO-review pass | `gstack:plan-ceo-review` | Skip — the plan ships as-is |
+| TDD handoff | `superpowers:test-driven-development` | `/3-eo-code` internal TDD loop |
 
 ## Arguments
 
@@ -60,6 +73,6 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 Before exiting plan mode, update `_dev-progress.md`:
 - Find the row for the target story (or add it if missing).
 - Set `Status` = `📝 planned`, `Plan` = `✓`, `Notes` = plan filename.
-- Set top-level `Last updated` to today, `Last command` to `/eo-plan {story}`.
+- Set top-level `Last updated` to today, `Last command` to `/2-eo-dev-plan {story}`.
 
 Filesystem is truth — `/eo-guide` will reconcile if you slip.

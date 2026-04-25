@@ -107,7 +107,7 @@ Every 90 days, for each active lesson:
 - If `Last triggered` is 90-180 days → move to "Archived" section (still searchable, not loaded at session start)
 - If `Last triggered` is >180 days → delete (assume internalized)
 
-Run via `/eo-retro` — the retro command prompts a prune pass.
+Run via `/10-eo-retro` — the retro command prompts a prune pass.
 
 ---
 
@@ -139,7 +139,7 @@ grep -l "{topic}" .claude/lessons.md
 
 ### Read at score time
 
-Before any `/eo-score` run, the eo-scorer skill should cat `.claude/lessons.md` and use the rules to calibrate the scoring rubric.
+Before any `/5-eo-score` run, the eo-scorer skill should cat `.claude/lessons.md` and use the rules to calibrate the scoring rubric.
 
 ---
 

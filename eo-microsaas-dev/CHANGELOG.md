@@ -5,6 +5,51 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.0] — 2026-04-25
+
+Weekend-shipment release. Recalibrates the plugin around one promise: a non-technical founder takes an EO-Brain package on Friday evening, builds through Saturday, and ships to production by Sunday night. Everything in this release supports that promise — visible sequence, hidden plumbing, lean defaults, CEO voice.
+
+### Added
+- **Numbered build chain 1–10** — every build command is now prefixed with its sequence number. `/1-eo-dev-start` → `/2-eo-dev-plan` → `/3-eo-code` → `/4-eo-review` → `/5-eo-score` → `/6-eo-bridge-gaps` → `/7-eo-ship`, plus lifecycle `/8-eo-dev-repair`, `/9-eo-debug`, `/10-eo-retro`. Utilities (`/eo-guide`, `/eo-status`, `/eo-github`) stay unnumbered. A non-technical founder can read the command palette top-to-bottom and know what to run next.
+- **`/eo-freeze` + `/eo-unfreeze` edit-boundary helpers** — scope Claude's writes to one folder for the rest of the session. Wraps `gstack:freeze` / `gstack:unfreeze` when the `gstack` plugin is present; falls back to a session-local rule otherwise. Kills "Claude rewrote three files while fixing one button."
+- **SaaSfast mode picker (M0–M3)** — `/1-eo-dev-start` Step 8b reads the BRD + ICP and picks exactly one mode:
+  - **M0 — None** (not a web app)
+  - **M1 — Backend-only** (directory / marketplace / content — default for ambiguous cases)
+  - **M2 — Gate-only** (marketing + gated app)
+  - **M3 — Core stack** (traditional SaaS)
+  The decision is recorded at the top of `architecture/tech-stack-decision.md` and every downstream command reads and respects it.
+- **Three new side-car SOPs** under `skills/eo-dev-start/`:
+  - `SAASFAST-MODES.md` — the four modes, picking heuristic, per-mode scaffold subset, mode-switch discipline.
+  - `PAYMENT-PROVIDER-SWAPS.md` — Tap / HyperPay / Moyasar / PayTabs / Stripe scaffold diffs, common interface, MENA defaults (Tap for Gulf, HyperPay for KSA-only, Stripe for global).
+  - `EO-SPECIFIC-LAYER.md` — the 5 files scaffolded on top of M1/M2/M3 (founder-profile schema, MENA font + phone defaults, distribution skeletons, Supabase RLS policy templates).
+- **`handover-bridge` Step 4b + Step 4c** — mode-aware scaffold and BRD post-process:
+  - Step 4 branches on `saasfast_mode` + `payment_provider` passed from `eo-dev-start`. M0 scaffolds per raw stack; M1 is Next.js + backend-only; M2/M3 add SaaSfast frontend layers.
+  - Step 4b installs the EO-specific layer on top of M1/M2/M3 from plugin templates.
+  - Step 4c parses the copied BRD and injects two framing blocks: **Weekend MVP** (stories 1–4) and **v2 Phase** (stories 5+ with `[@Phase2]` tagging). Idempotent. `brd-traceability` skill honors the tag — Phase 2 ACs don't count against MVP shipment.
+- **Self-scoring gates on `/7-eo-ship`, `/8-eo-dev-repair`, `/9-eo-debug`** — every "done" declaration re-invokes `eo-scorer`. No more shipping on a stale score or closing a bug without re-checking the affected AC:
+  - `/7-eo-ship` — full 5-hat pass on HEAD. ≥ 90 ship; 80–89 bounce to `/6-eo-bridge-gaps`; < 80 refuse and route to `/2-eo-dev-plan`.
+  - `/8-eo-dev-repair` — mode-consistency check + re-score affected story scope. ≥ 80 accepted; < 80 routes to `/3-eo-code`.
+  - `/9-eo-debug` — re-score affected AC after fix + tests green. ≥ 80 closed; < 80 keeps bug open + flags follow-up.
+- **Hidden plumbing wired into every numbered command** — gstack + superpowers skills preferred, internal fallbacks always present. Founder never sees "skill missing" errors. Per-command mapping documented under each command's "Hidden plumbing" section.
+- **GitHub push step in `/7-eo-ship`** — remote-aware. Auto-invokes `eo-github` when no remote exists; asks once if `github_intent=local-only` still active.
+- **Weekend cadence in `_dev-progress.md` template** — seeded with 7 rows (4 MVP + 3 v2 🧊 frozen). Phase column shows MVP vs v2 at a glance. Cadence table replaced (5-week sprint plan → Fri/Sat/Sun weekend plan).
+
+### Changed
+- **`CLAUDE.md.template`** — Voice § now enforces CEO-brief tone for every founder-facing artifact (`docs/qa-scores/`, `docs/handovers/`, `docs/retros/`, `_dev-progress.md`). No 5-hat composite tables visible, no `aria-invalid`, no "setSession fragility". Engineering detail lives under `docs/engineering/`. The hidden plumbing (gstack / superpowers / subagent names) stays hidden — the founder sees only the numbered chain + utilities.
+- **`handover-bridge` quality checks 9/9 → 12/12** — adds mode-line-present, mode-consistent-scaffold, BRD blocks-present-when-story-count-over-4.
+- **`eo-dev-start` self-score protocol 14 → 16** — adds mode-picked, payment-resolved.
+- **Marketplace description (`1.1.0` → `1.2.0`)** — rewritten around weekend-shipment promise and full numbered chain.
+
+### Migration — 1.3.x → 1.4.0
+
+Existing projects keep working. New projects scaffold with the numbered chain and mode-aware layer.
+
+- **Existing projects built on 1.3.x** continue to work. Their `docs/qa-scores/` / `docs/plans/` / commits reference the un-numbered chain and stay valid as history. Students can switch to numbered commands immediately — behavior is identical.
+- **New projects** run `/1-eo-dev-start` — the mode picker runs at Step 8b, the BRD is post-processed at handover-bridge Step 4c, `_dev-progress.md` seeds 7 rows with 4 MVP + 3 v2 frozen.
+- **Installing `gstack` or `superpowers` is optional.** If installed, their skills take over the matching steps. If not, internal fallbacks run. Founder never sees the difference.
+
+---
+
 ## [1.3.1] — 2026-04-23
 
 ### Theme

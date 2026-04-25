@@ -2,10 +2,10 @@
 description: Self-review a PR or working branch. Catches bugs, security, Arabic RTL, mobile issues.
 ---
 
-# /eo-review
+# /4-eo-review
 
 **Pillar:** Boris #4 — Verification Before Done
-**When to run:** After `/eo-code`, before `/eo-score`.
+**When to run:** After `/3-eo-code`, before `/5-eo-score`.
 
 ## What it does
 
@@ -27,8 +27,18 @@ description: Self-review a PR or working branch. Catches bugs, security, Arabic 
    - If test file → queue @AC tag verification
 3. Run brd-traceability coverage check
 4. Grep last commit for "## Elegance Pause" block
-5. Output punch list with severity (🔴 must / 🟡 should / 🟢 nice)
+5. Verify SaaSfast-mode consistency (no cross-mode leakage in changed files)
+6. Optional deep review pass: gstack:/review if installed (adds security + perf lens)
+7. Output punch list with severity (🔴 must / 🟡 should / 🟢 nice)
 ```
+
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Verification contract | `superpowers:verification-before-completion` | Internal punch-list generator |
+| Deep review pass | `gstack:/review` | Skip — the 5-hat review runs anyway |
+| Secret scan | global `secret-scanner` hook (repo setting) | Inline grep for `sk_live_`, `SECRET`, etc. |
 
 ## Arguments
 
@@ -52,5 +62,5 @@ description: Self-review a PR or working branch. Catches bugs, security, Arabic 
 ### 🟢 Nice to have
 - …
 
-**Ready for /eo-score?** (fix 🔴 first)
+**Ready for /5-eo-score?** (fix 🔴 first)
 ```

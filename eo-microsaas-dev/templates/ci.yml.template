@@ -24,7 +24,7 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm run test || echo "⚠️  tests missing or failing — acceptable on early sprints, must be green before /eo-ship"
+        run: npm run test || echo "⚠️  tests missing or failing — acceptable on early sprints, must be green before /7-eo-ship"
 
       - name: Build
         run: npm run build

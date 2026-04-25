@@ -7,7 +7,7 @@ version: "1.0"
 # eo-dev-repair — Bootstrap Triage + Surgical Repair
 
 **Version:** 1.0 (2026-04-21)
-**Pillar:** EO-specific — the recovery command. Owns the "what's regeneratable vs. what isn't" decision so `/eo-dev-start` stays a pure happy-path bootstrap.
+**Pillar:** EO-specific — the recovery command. Owns the "what's regeneratable vs. what isn't" decision so `/1-eo-dev-start` stays a pure happy-path bootstrap.
 **Purpose:** Students delete files, switch branches, partially ingest EO-Brain, or get halfway through bootstrap and lose context. This skill triages the damage and either repairs surgically or refuses with clear remediation. Never destroys data.
 
 **Hard contract:** mixed state (some silent-repair-safe + some refuse-and-route missing) → refuse all repair. Surface the root cause. Partial repair is worse than no repair because it hides the upstream gap.
@@ -70,7 +70,7 @@ Identical scan to `eo-dev-start` Step 4. Record for each: `present | absent`, an
 
 | Observed | Route |
 |----------|-------|
-| All 11 signals absent (empty) | `/eo-dev-start` |
+| All 11 signals absent (empty) | `/1-eo-dev-start` |
 | All 11 signals present + first commit exists | `/eo-guide` |
 | Anything between → continue | — |
 
@@ -120,7 +120,7 @@ On `y` → for each missing silent-repair-safe signal, write from template using
 ```
 chore(repair): regenerate {list of files} via eo-dev-repair
 
-Triggered by /eo-dev-repair. Core artifacts (BRD, architecture, project-brain)
+Triggered by /8-eo-dev-repair. Core artifacts (BRD, architecture, project-brain)
 untouched. Accumulated lessons preserved.
 ```
 
@@ -145,7 +145,7 @@ Refuse-and-route (must come from EO-Brain, cannot be regenerated):
 Why this refusal:
   Silent repair here would hide the upstream gap. You would end up with a
   scaffolded project missing its own spec or identity. Fix the root cause
-  in EO-Brain, then re-run /eo-dev-start (empty project) or /eo-dev-repair
+  in EO-Brain, then re-run /1-eo-dev-start (empty project) or /8-eo-dev-repair
   (if some files survive).
 
 No writes made.

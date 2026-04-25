@@ -13,7 +13,7 @@ Execute:
 4. Detect mode from arguments (or pick `guided` if none given):
    - `create` → create a new private repo under the authenticated user, apply best-practices settings, wire origin, push
    - `point-existing <url-or-owner/repo>` → validate empty + writable, align settings with a drift diff, wire origin, push
-   - `guided` → show the A/B/C menu for students who said "I don't know" in `/eo-dev-start`
+   - `guided` → show the A/B/C menu for students who said "I don't know" in `/1-eo-dev-start`
    - `audit` → read current repo state, compute drift vs the best-practices matrix, offer per-item fixes
 5. Detect GitHub plan (free/pro/team/enterprise) and collaborator count via MCP. Pick branch strategy (trunk for solo, dual-branch for team). Never offer plan-locked features on plans that would silently ignore them.
 6. Plan-mode preview for every mode. Student approves (`y`) before anything is written. Mode 2 preview shows the settings drift diff + option to `skip-settings`.
@@ -32,10 +32,10 @@ Read `skills/eo-github/SKILL.md` for the full four-mode state machine, best-prac
 
 ## When to run
 
-- Student picked option 1, 2, or 4+MCP in `/eo-dev-start`'s 4-option question → skill is auto-routed here
+- Student picked option 1, 2, or 4+MCP in `/1-eo-dev-start`'s 4-option question → skill is auto-routed here
 - Student finished local MVP and is ready to push to GitHub
 - Anytime post-setup for a drift audit (`/eo-github audit`)
-- After first `/eo-ship` green CI to accept branch-protection activation
+- After first `/7-eo-ship` green CI to accept branch-protection activation
 
 ## Contract
 

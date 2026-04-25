@@ -2,7 +2,7 @@
 description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacing.
 ---
 
-# /eo-retro
+# /10-eo-retro
 
 **Pillar:** Boris #3 — Self-Improvement Loop
 **When to run:** End of sprint (weekly or bi-weekly).
@@ -26,8 +26,18 @@ description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacin
 4. Parse .claude/lessons.md, check `Last triggered` dates
 5. Move >90d lessons to archived section
 6. Scan PR history for recurring bug types → propose new lessons
-7. Write report to docs/retros/YYYY-MM-DD.md
+7. Check for SaaSfast-mode outliers — did any product not fit M0–M3 cleanly?
+   If yes → propose a new row for skills/eo-dev-start/SAASFAST-MODES.md
+8. Write report to docs/retros/YYYY-MM-DD.md
 ```
+
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Retro drafter | `gstack:retro` | Plugin internal retro generator |
+| Trend computation | reads `docs/qa-scores/trend.csv` | — (always present) |
+| SOP update proposals | writes PR suggestion comment on `SAASFAST-MODES.md` | Inline note in retro report |
 
 ## Arguments
 
@@ -68,7 +78,7 @@ description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacin
 ## After retro — update tracker
 
 Retro is sprint-scoped, not story-scoped. Update `_dev-progress.md` top-of-file metadata only:
-- `Last updated` = today; `Last command` = `/eo-retro`
+- `Last updated` = today; `Last command` = `/10-eo-retro`
 - Append one line under a `## Retros` section with a link to the retro file (e.g., `- 2026-04-21 — docs/retros/2026-04-21.md (avg composite 87, focus: QA)`)
 
 Do not touch individual story rows — their state reflects code, not reflection.

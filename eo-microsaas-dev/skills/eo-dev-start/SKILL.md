@@ -1,7 +1,7 @@
 ---
 name: eo-dev-start
-description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
-version: "1.1"
+description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /8-eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
+version: "1.2"
 ---
 
 # eo-dev-start — First-Run Bootstrap
@@ -10,7 +10,7 @@ version: "1.1"
 **Pillar:** EO-specific — the single entry point from EO-Brain strategy to Claude Code execution.
 **Purpose:** Replace the 75-line copy-paste bootstrap prompt from `5-CodeHandover/README.md` with one command that reads EO-Brain output, previews exactly what it will create, waits for approval, then executes `handover-bridge` with parameters extracted from phases 0-4.
 
-**Hard contract:** writes nothing without explicit student approval inside plan mode. Refuses on any non-empty state. Never decides repair (that's `/eo-dev-repair`'s job).
+**Hard contract:** writes nothing without explicit student approval inside plan mode. Refuses on any non-empty state. Never decides repair (that's `/8-eo-dev-repair`'s job).
 
 ---
 
@@ -35,8 +35,8 @@ This skill closes all three.
 
 ### State B — `partial`
 - Any of the bootstrap files exists, but not all.
-- **Route:** refuse. Print classified findings. Tell student to run `/eo-dev-repair`.
-- This skill never decides repair. `/eo-dev-repair` owns that.
+- **Route:** refuse. Print classified findings. Tell student to run `/8-eo-dev-repair`.
+- This skill never decides repair. `/8-eo-dev-repair` owns that.
 
 ### State C — `bootstrapped`
 - All of: `CLAUDE.md`, `.claude/lessons.md`, `architecture/brd.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, and at least one `feat:` or `chore(bootstrap):` commit on `main` or `dev`.
@@ -83,7 +83,7 @@ Remediation:
   2. Symlink your existing EO-Brain folder:
        ln -s /path/to/EO-Brain {ROOT}/eo-brain
 
-No writes made. Re-run /eo-dev-start after fixing.
+No writes made. Re-run /1-eo-dev-start after fixing.
 ```
 
 ### Step 3 — Detect language
@@ -136,10 +136,10 @@ Next:
 
 No writes. Exit.
 
-#### State B (partial) — refuse + route to `/eo-dev-repair`
+#### State B (partial) — refuse + route to `/8-eo-dev-repair`
 
 ```
-⚠️ Project is partially bootstrapped — /eo-dev-start does not handle this.
+⚠️ Project is partially bootstrapped — /1-eo-dev-start does not handle this.
 
 Signals present:
   {list of present signals with timestamps}
@@ -148,7 +148,7 @@ Signals missing:
   {list of absent signals}
 
 Next:
-  /eo-dev-repair         ← triages missing pieces and decides silent-repair vs refuse
+  /8-eo-dev-repair         ← triages missing pieces and decides silent-repair vs refuse
 ```
 
 No writes. Exit.
@@ -193,6 +193,37 @@ Read and parse (no writes yet):
 | `mena_flag` | `1-ProjectBrain/icp.md` contains any of `Cairo Amman Riyadh Dubai UAE KSA MENA Arabic` → `true` | `false` |
 | `deploy_lane` | `4-Architecture/tech-stack-decision.md` key `deploy:` | `vercel` (safe default) |
 
+### Step 8b — Pick SaaSfast mode (M0–M3)
+
+SaaSfast is a toolkit, not a stack. Different products need different subsets. Read `SAASFAST-MODES.md` (side-car to this skill) and pick exactly one mode from M0–M3 based on the BRD + ICP.
+
+**Heuristic (first match wins):**
+
+| Signal in BRD / ICP | Mode |
+|---------------------|------|
+| Product is not a web app (CLI, internal-only, native mobile) | **M0 — None** |
+| Keywords: `directory`, `marketplace`, `content site`, `catalog`, `AppSumo-style`, `landing + browse` | **M1 — Backend-only** |
+| Distinct marketing pages + gated product behind auth | **M2 — Gate-only** |
+| Standard SaaS loop (login → dashboard → features, tables, admin-heavy) | **M3 — Core stack** |
+| Ambiguous | **M1 — Backend-only** (safe default: gets the boring stuff for free without boxing UX) |
+
+**Payment auto-swap:**
+- If BRD names a non-Stripe provider (Tap / HyperPay / Moyasar / PayTabs) → record `payment_provider=<name>`.
+- If ICP region is MENA and provider is unnamed → record `payment_provider=tap` (default for Gulf).
+- Otherwise → `payment_provider=stripe`.
+
+See `PAYMENT-PROVIDER-SWAPS.md` for the per-provider scaffold diff.
+
+**Record the decision** — will be written by `handover-bridge` to `$ROOT/architecture/tech-stack-decision.md` as:
+
+```
+SaaSfast mode: M1 — Backend-only
+Rationale: BRD describes a directory product (AppSumo-style browse + filter). Frontend is custom; backend pulls auth + payment + email + i18n/RTL from SaaSfast.
+Payment provider: tap (Gulf-first; stripe configured as intl fallback per BRD)
+```
+
+Every downstream command reads this line and respects the mode.
+
 ### Step 9 — Plan-mode preview (the approval gate)
 
 Enter plan mode. Print exactly this (English template shown; Arabic analog when `lang=ar`):
@@ -231,6 +262,8 @@ Identity applied:
   Stories         {story_count}
   ACs             {ac_count}
   Language        {lang}
+  SaaSfast mode   {mode_code} — {mode_name} ({one-line rationale})
+  Payment         {payment_provider}
 
 Will NOT:
   - Overwrite any existing file at {ROOT}
@@ -311,7 +344,7 @@ Writes performed in this step: zero. Everything is just parameter capture for St
 
 ### Step 10 — Invoke `handover-bridge`
 
-Pass the identity fields from Step 8 **and** `github_intent` from Step 9b to the `handover-bridge` skill. It uses `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
+Pass the identity fields from Step 8, the `saasfast_mode` + `payment_provider` from Step 8b, and `github_intent` from Step 9b to the `handover-bridge` skill. It uses `saasfast_mode` to pick which scaffold subset to install (see `handover-bridge/SKILL.md` Step 4), and `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
 
 Execute its 11-step sequence. If any step fails:
 - Log the failure to `$ROOT/.bootstrap-failures.log`
@@ -358,7 +391,7 @@ GitHub:
   {if github_intent=local-only:}                      No remote. Run /eo-github when your MVP is ready.
 
 Next command:
-  /eo-plan Story-1-{first_story_slug}
+  /2-eo-dev-plan Story-1-{first_story_slug}
 
 Before you run it:
   - Skim CLAUDE.md (≤150 lines) — make sure it reflects your project
@@ -371,13 +404,13 @@ Before you run it:
 ## Anti-patterns
 
 - **Never write outside plan-mode approval.** If the student says `n`, nothing lands.
-- **Never overwrite.** If a file exists, refuse and route to `/eo-dev-repair`. Don't merge silently.
+- **Never overwrite.** If a file exists, refuse and route to `/8-eo-dev-repair`. Don't merge silently.
 - **Never invent identity.** If EO-Brain is missing a required field, refuse with remediation. Don't ask the student to fill in what should have come from phases 0-4.
-- **Never decide repair.** Partial state → `/eo-dev-repair`. Period.
+- **Never decide repair.** Partial state → `/8-eo-dev-repair`. Period.
 - **Never skip language detection.** `lang=ar` students get Arabic output for the plan preview and evidence table.
 - **Never create a GitHub repo silently.** The 4-option question in Step 9b is mandatory whenever no origin exists. All actual GitHub operations are delegated to `eo-github`.
 - **Never `git init` when `github_intent=local-only`.** Students who choose option 3 stay fully local — no git, no remote. They can still use every other plugin feature.
-- **Never `git push` from this skill.** Push is the exclusive responsibility of `eo-github` (on bootstrap) and `/eo-ship` (for releases).
+- **Never `git push` from this skill.** Push is the exclusive responsibility of `eo-github` (on bootstrap) and `/7-eo-ship` (for releases).
 
 ---
 
@@ -407,10 +440,12 @@ After every run, verify:
 | 7 | No writes before student approval | must pass |
 | 8 | GitHub-intent question asked when no origin was already set | must pass |
 | 9 | MCP presence detected (not assumed) before routing option 1/2/4 | must pass |
-| 10 | `handover-bridge` invoked with extracted identity (not defaults) + `github_intent` | must pass |
-| 11 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
-| 12 | `local-only` path skipped git init entirely | must pass |
-| 13 | Evidence table printed post-success with bytes + line counts | must pass |
-| 14 | Next command recommendation cites first Story slug from BRD | must pass |
+| 10 | SaaSfast mode picked (M0–M3) + one-line rationale recorded | must pass |
+| 11 | Payment provider resolved (Stripe or regional swap) from BRD or MENA default | must pass |
+| 12 | `handover-bridge` invoked with extracted identity + `saasfast_mode` + `payment_provider` + `github_intent` | must pass |
+| 13 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
+| 14 | `local-only` path skipped git init entirely | must pass |
+| 15 | Evidence table printed post-success with bytes + line counts | must pass |
+| 16 | Next command recommendation cites first Story slug from BRD | must pass |
 
-Threshold: 14/14. Below = bug → capture in `.claude/lessons.md`.
+Threshold: 16/16. Below = bug → capture in `.claude/lessons.md`.

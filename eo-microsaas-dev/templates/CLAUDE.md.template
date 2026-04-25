@@ -28,26 +28,30 @@ docs/retros/                 ← sprint retros
 
 ## The 7 pillars (non-negotiable)
 
-1. **Plan before code** — run `/eo-plan` before writing any feature
+1. **Plan before code** — run `/2-eo-dev-plan` before writing any feature
 2. **Subagents for parallel work** — dispatch when files are independent
 3. **Lessons compound** — append to `.claude/lessons.md` after every correction
-4. **Verify before done** — `/eo-review` before declaring complete
+4. **Verify before done** — `/4-eo-review` before declaring complete
 5. **Demand elegance** — elegance-pause block in every non-trivial PR
-6. **Autonomous bug fixing** — `/eo-debug` finds root cause + regression test
+6. **Autonomous bug fixing** — `/9-eo-debug` finds root cause + regression test
 7. **Score + ship** — 90+ composite or don't ship
 
-## Daily command chain
+## Daily command chain (numbered 1-10)
 
-| Step | Command | Gate |
-|------|---------|------|
-| Plan | `/eo-plan {feature}` | Approval |
-| Code | `/eo-code` | Tests pass |
-| Review | `/eo-review` | No 🔴 items |
-| Score | `/eo-score` | 90+ composite |
-| Fix gaps | `/eo-bridge-gaps` | Lowest hat ≥8 |
-| Ship | `/eo-ship` | Health check 200 |
-| Retro | `/eo-retro` | Weekly |
-| Debug | `/eo-debug {bug}` | On-demand |
+| # | Command | When to run | Gate |
+|---|---------|-------------|------|
+| 1 | `/1-eo-dev-start` | Once per project | Plan mode approval |
+| 2 | `/2-eo-dev-plan {story}` | Start of each story | Approval |
+| 3 | `/3-eo-code` | After plan approved | Tests pass |
+| 4 | `/4-eo-review` | After code green | No 🔴 items |
+| 5 | `/5-eo-score` | After review clean | 90+ composite |
+| 6 | `/6-eo-bridge-gaps` | Score 80-89 | Lowest hat ≥8 |
+| 7 | `/7-eo-ship` | Score 90+ | Health check 200 |
+| 8 | `/8-eo-dev-repair` | Scaffold drifted | Self-score ≥80 |
+| 9 | `/9-eo-debug {bug}` | Test / deploy fails | Root cause + regression test |
+| 10 | `/10-eo-retro` | After a story ships | Lessons updated |
+
+Utilities (unnumbered): `/eo-status` (dashboard), `/eo-guide` (where am I / what's next), `/eo-github` (remote wiring), `/eo-freeze` + `/eo-unfreeze` (scope edits to one folder).
 
 ## Quality gate
 - No PR without 90+ composite score (saved to `docs/qa-scores/`)
@@ -69,6 +73,16 @@ leverage, synergy, ecosystem, holistic, digital transformation, innovative, cutt
 
 ## Voice
 Direct. Specific. Numbers over claims. Trust-first, pitch-second.
+
+### Founder-facing artifacts — CEO brief, not dev chatter
+Everything written into `docs/qa-scores/`, `docs/handovers/`, `docs/retros/`, and `_dev-progress.md` is read by the founder — not by an engineer. Write like a CPO briefs a CEO:
+
+- One-line verdict first (`Ship gate: ✅ pass (92)` — not a 5-hat composite table)
+- Numbers + decisions, not `aria-invalid` or "setSession fragility"
+- Engineering detail (stack traces, hat breakdowns, lint warnings) lives under `docs/engineering/`
+- Never expose the hidden plumbing (gstack, superpowers, subagent names) — the founder sees `/1-eo-dev-start` through `/10-eo-retro` + utilities, nothing else
+
+If the founder would need to Google a term to understand the line, rewrite it.
 
 ## Env vars
 See `.env.example`. Never commit `.env.local`.
@@ -92,7 +106,7 @@ Lessons at `.claude/lessons.md` auto-load via SessionStart hook. Read them befor
 ## When stuck
 1. Check `.claude/lessons.md` — have I hit this before?
 2. Check `docs/qa-scores/trend.csv` — which hat keeps failing?
-3. Run `/eo-debug` with specific error
+3. Run `/9-eo-debug` with specific error
 4. Ask in EO MicroSaaS community Slack
 
 ## Non-negotiable

@@ -76,7 +76,7 @@ If a PR ships without an elegance pause block in the description:
 
 1. **eo-scorer** caps Engineering hat at 7 automatically
 2. **lessons-manager** appends a lesson if a bug later surfaces in the unpaused code
-3. **/eo-retro** surfaces the unpaused PRs for the sprint — compounding signal
+3. **/10-eo-retro** surfaces the unpaused PRs for the sprint — compounding signal
 
 ---
 
@@ -125,7 +125,7 @@ Lesson L-002 appended: "bundle size comment mandatory for any new dep."
 
 ## Integration
 
-- **/eo-code:** reminds before commit
-- **/eo-review:** checks PR description for pause block
-- **/eo-score:** caps Engineering ≤ 7 if no pause block
+- **/3-eo-code:** reminds before commit
+- **/4-eo-review:** checks PR description for pause block
+- **/5-eo-score:** caps Engineering ≤ 7 if no pause block
 - **lessons-manager:** captures skipped-pause bugs
