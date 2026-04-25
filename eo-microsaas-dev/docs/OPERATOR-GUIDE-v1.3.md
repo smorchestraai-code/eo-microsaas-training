@@ -1,12 +1,14 @@
-# eo-microsaas-dev v1.3.0 — Complete Operator's Guide
+# eo-microsaas-dev v1.3.1 — Complete Operator's Guide
 
 **For the student or operator opening this plugin for the first time.** Every command, every skill, three real-world scenarios, and the traps new people hit.
 
-**Version:** 1.3.0 (2026-04-23)
+**Version:** 1.3.1 (2026-04-23)
 **Plugin repo:** https://github.com/smorchestraai-code/eo-microsaas-training
 **Applies to:** fresh EO MicroSaaS projects bootstrapped from EO-Brain phases 0-4.
 
 **What changed in v1.3:** a new `/eo-github` command + `eo-github` skill that acts as GitHub admin for your project (create / point to existing / guided / audit). `/eo-dev-start` now asks one 4-option question when no GitHub remote is mounted — so you can bootstrap fully local and push later. See §9 for the v1.3 delta.
+
+**What changed in v1.3.1:** stuck-path hardening. Every refuse path in the plugin now names a concrete next door. See §10 for the stuck-state exit map and §11 for the v1.3.1 delta.
 
 ---
 
@@ -369,4 +371,183 @@ GitHub state lives in `git config --get remote.origin.url`. No `.claude/project.
 
 ---
 
-**TL;DR for a new operator:** `/eo-dev-start` once per project. Answer the 4-option GitHub question (or skip if you already have a remote). `/eo-github` when you want to push and don't have a remote yet, or any time for a drift audit. `/eo-guide` every returning session. The chain in between (`/eo-plan → /eo-code → /eo-review → /eo-score → /eo-ship`) is the real work. Everything else is there to catch you when you drift.
+## 10. Stuck? Here's the exit
+
+Every refuse path in the plugin names a concrete next door. If you ever see "can't help" with nothing else — that's a bug; open an issue. Below is the full map.
+
+### 10.1 You're at `/eo-guide` but it says the same phase every time
+
+**Symptom:** `/eo-guide` returns `local-only-bootstrapped` → "Keep building locally" even after you've been coding for days.
+
+**Check:** do you have plan files under `docs/plans/story-*.md`?
+
+**Exit:** as of v1.3.1, `local-only-bootstrapped` only fires when **no plan files exist yet**. Once you have `docs/plans/story-1-*.md`, `/eo-guide` advances to sprint-loop phases (`ready-to-plan`, `ready-to-code`, etc.) and shows a banner:
+
+```
+🔒 Still local (no git yet). /eo-github will promote when MVP is ready.
+```
+
+If you're on v1.3.0 and see the short-circuit, upgrade the plugin (`/plugin update eo-microsaas-dev`) to v1.3.1.
+
+### 10.2 `/eo-guide` says "state inconsistent" with a diagnostic
+
+**Symptom:** Mode 3 output — contradictions like "score file exists but no tests" or "ship commit without score ≥ 90."
+
+**Exit:** the diagnostic lists the safe re-sync command (usually `/eo-score`). Run it, then `/eo-guide` again. A `docs/retros/_inconsistent-state-{DATE}.md` is logged for later inspection.
+
+### 10.3 `/eo-dev-start` refuses because state is partial
+
+**Symptom:** "at least one bootstrap signal exists but not all — partial state."
+
+**Exit:** run `/eo-dev-repair`. It triages the missing pieces and silently repairs the regeneratable ones. If it refuses too (core artifacts missing: BRD, architecture, project-brain), re-run the EO-Brain phases 0-4 offline, then re-run `/eo-dev-start`.
+
+### 10.4 `/eo-github` refuses: GitHub MCP not connected
+
+**Symptom:** `❌ GitHub MCP not connected.` with an install block.
+
+**Two-way exit:**
+
+**A. Install MCP properly** — add to `~/.claude/settings.json`:
+
+```json
+"mcpServers": {
+  "github": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..." }
+  }
+}
+```
+
+Create a PAT at https://github.com/settings/tokens (scopes: `repo`, `read:org`; fine-grained PATs also need "Administration: read/write" for repo creation). Restart Claude Code. Re-run `/eo-github`.
+
+**B. Manual fallback** — say "manual" at the refuse prompt and the skill prints a runbook: create repo in GitHub UI → `git init` → `git remote add` → `git push -u origin main` → disable Wiki/Projects/Discussions in Settings. Zero writes from the skill. You do it all yourself.
+
+Sprint work (`/eo-plan`, `/eo-code`, `/eo-score`, `/eo-bridge-gaps`) works without a remote. Only `/eo-ship` refuses until a remote exists.
+
+### 10.5 `/eo-github` refuses: GitHub MCP is connected but authentication failed
+
+**Symptom:** 401/403 / "bad credentials" from MCP.
+
+**Check in order:**
+
+1. **PAT expired** — the most common cause. Regenerate at https://github.com/settings/tokens, paste into settings.json, restart.
+2. **Missing scopes** — need `repo` + `read:org`. Fine-grained PATs need "Administration: read/write" for repo creation.
+3. **SSO not approved** — if your org uses SSO, approve the PAT at the tokens page under "SSO".
+4. **Wrong env var name** — some MCP servers use `GITHUB_TOKEN`, others `GITHUB_PERSONAL_ACCESS_TOKEN`. Check the server's README.
+
+Re-run `/eo-github`. All local state is preserved.
+
+### 10.6 `/eo-github create` says the slug already exists
+
+**Symptom:** `⚠️ {owner}/{slug} already exists on GitHub.` with 3 suggestions.
+
+**Exit:** pick a suggestion (1–3), type your own slug (3–60 chars, lowercase ASCII, hyphens allowed, letter-leading), or type `cancel`. The loop retries up to 3 times. After 3 collisions or invalid replies the skill refuses — come back when you've chosen a name offline.
+
+### 10.7 `/eo-github point-existing` refuses: target repo is not empty
+
+**Symptom:** `❌ Target repo {owner}/{repo} is not empty. Found: N commits.` with 4 labeled exits.
+
+**Pick the one that matches:**
+
+- **A. Those commits are mine but unrelated.** Use `/eo-github create` — fresh repo instead.
+- **B. Those commits ARE this project's earlier state.** Use normal git: `git remote add origin <url> && git fetch origin && git merge origin/main --allow-unrelated-histories` → resolve conflicts → `git push -u origin main`. The skill refuses to guess the merge strategy.
+- **C. Remote was a mistake, start over.** Delete in GitHub UI → re-run `/eo-github create`.
+- **D. Just nuke and re-push.** Not supported in this skill. Do `git push --force` yourself, understanding the risk.
+
+### 10.8 Origin is already set, skill refuses
+
+**Symptom:** `⚠️ Origin remote already set. Current origin: ...`
+
+**Exit (3 doors):**
+
+- **Remote is correct:** use normal `git push` or `/eo-ship` — you don't need `/eo-github`.
+- **Remote is wrong:** `git remote set-url origin <correct-url>` manually, then re-run `/eo-github` (it'll detect the new URL and either accept it or refuse again if non-empty).
+- **You want a fresh bootstrap:** run `/eo-dev-repair`.
+
+### 10.9 Push rejected — non-fast-forward
+
+**Symptom:** `❌ Push rejected — remote has commits not in local.`
+
+**Exit:** `git pull --rebase origin main && git push -u origin main`. The skill never force-pushes. If the divergence is too messy, use door B from §10.7.
+
+### 10.10 GitHub rate limit (429)
+
+**Symptom:** `GitHub rate limit hit. Resets in N min.`
+
+**Exit:** wait, re-run. Nothing was written.
+
+### 10.11 First CI never ran, branch protection stays deferred
+
+**Symptom:** branch protection isn't applied after repo creation.
+
+**Exit:** that's intentional. Protection can only require status checks that have actually run once. Ship your first story (`/eo-ship`) → CI runs → `/eo-github audit` offers activation. Until then, `main` is unprotected and that's OK.
+
+### 10.12 `/eo-ship` refuses because no git or no remote
+
+**Symptom:** `/eo-ship` says "git repo missing" or "no origin."
+
+**Two paths:**
+
+- **You want GitHub:** run `/eo-github` (create or point-existing). One shot: git init → first commit → origin wired → push. Then re-run `/eo-ship`.
+- **You want to keep shipping to your own infra (no GitHub):** `/eo-ship` will keep refusing. Bypass it — deploy manually to your infra until you're ready to adopt GitHub.
+
+### 10.13 MCP call fails with a 5xx / network error
+
+**Symptom:** `⚠️ GitHub MCP reachable but returned a server error.`
+
+**Exit:** check https://www.githubstatus.com/. Check your network (VPN? proxy blocking `api.github.com`?). Wait 2 min, re-run. Or use the manual fallback (§10.4 door B) if GitHub UI works.
+
+### 10.14 You're completely stuck and none of the above applies
+
+**Exit:**
+1. Run `/eo-guide` → read the phase and the stated next command.
+2. Run `/eo-status` → see the compact dashboard (no coaching).
+3. Check `.bootstrap-failures.log` at repo root (written by `/eo-dev-start` on any step failure).
+4. Open an issue at https://github.com/smorchestraai-code/eo-microsaas-training with the error output + the command that triggered it.
+
+The plugin is designed so that no path is terminal. If you find one, it's a bug worth reporting.
+
+---
+
+## 11. What changed in v1.3.1 (delta from v1.3.0)
+
+**Theme: no stuck paths.** Every refuse message now names a concrete next door. Previously-correct behavior unchanged.
+
+### Fixes
+
+1. **`eo-guide`: local-only short-circuit.** v1.3.0's state machine fired `local-only-bootstrapped` before sprint-loop phases, so local-only students who had been coding for weeks were perpetually told "keep building locally." v1.3.1 only fires that state when no plan files exist yet. Once Story 1 is planned, sprint-loop phases advance normally with a `🔒 Still local` banner.
+
+2. **`eo-guide`: no-remote banner.** Sprint-loop phases for students with `.git/` but no `remote.origin.url` now show `🔗 Git local, no remote yet` so they understand why `/eo-ship` will refuse.
+
+3. **`eo-guide`: new phase `ready-to-ship-local-only`.** Local-only students who reach score ≥ 90 now see: "🎉 MVP ready to go public. Run `/eo-github` → pick `create` or `point-existing`. That skill does git init + first commit + push in one shot."
+
+4. **`eo-github`: MCP-absent vs MCP-auth-failed are distinct paths.** v1.3.0 refused identically for both. v1.3.1 splits them with PAT-specific remediation (regenerate, scopes, SSO, env var name) vs. installation remediation.
+
+5. **`eo-github`: manual fallback escape hatch.** Student can reply "manual" to any MCP refuse; skill prints a complete text runbook (UI create → `git remote add` → settings checklist) and exits with zero writes. Unblocks anyone whose MCP can't be fixed today.
+
+6. **`eo-github`: slug collision retry loop.** Mode 1 now retries up to 3 times with suggestions (`{slug}-2`, `{slug}-{year}`, `eo-{slug}`). After 3 collisions/invalid replies, refuses cleanly — no infinite prompt.
+
+7. **`eo-github`: non-empty remote remediation clarity.** Mode 2 now lists 4 labeled exits (A/B/C/D) describing each real situation ("mine but unrelated" / "earlier state of this project" / "mistake, start over" / "force-push outside this skill").
+
+8. **`eo-github`: rate-limit + race-condition handling.** 429 reads `Retry-After` and exits cleanly with wait time. 422 on `create_repo` (repo appeared between precheck and create — race) re-fires the slug collision loop instead of silently adopting.
+
+9. **`eo-github`: actionable LICENSE guidance.** Evidence table now lists MIT / Apache-2 / Proprietary with a short rationale + GitHub UI path, instead of just "add one when ready."
+
+10. **`eo-dev-start`: option 1/2/4 with MCP absent.** v1.3.0 refused with a one-line "install MCP first." v1.3.1 prints a full install block (settings.json snippet, PAT link + scopes, restart) and continues the bootstrap as `local-only` so the student isn't blocked.
+
+11. **`eo-dev-start`: invalid-reply retry.** Anything other than 1/2/3/4 re-asks up to 3 times, then defaults to local-only and notes in evidence.
+
+### Non-changes (intentional)
+
+- All v1.3.0 commands, skills, and plugin registration stay identical.
+- No new commands. No new skills. No new files.
+- `.claude/project.json` still NOT created. Git config remains the single source of truth.
+
+### Migration from v1.3.0
+
+No action needed. `/plugin update eo-microsaas-dev` picks up v1.3.1. Your projects keep working exactly as before — just with clearer doors when something goes wrong.
+
+---
+
+**TL;DR for a new operator:** `/eo-dev-start` once per project. Answer the 4-option GitHub question (or skip if you already have a remote). `/eo-github` when you want to push and don't have a remote yet, or any time for a drift audit. `/eo-guide` every returning session. The chain in between (`/eo-plan → /eo-code → /eo-review → /eo-score → /eo-ship`) is the real work. Everything else is there to catch you when you drift. If you ever get stuck — §10 has the exit.
