@@ -1,12 +1,13 @@
 ---
 name: eo-dev-start
 description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /8-eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
-version: "1.2"
+version: "1.3"
 ---
 
 # eo-dev-start — First-Run Bootstrap
 
-**Version:** 1.1 (2026-04-23 — MCP-absent paths now print a concrete install block and continue as local-only instead of failing silently; invalid replies retry up to 3 times)
+**Version:** 1.3 (2026-04-26 — Step 8a adds explicit `SaaSfast yes/no` question, never inferred from BRD; Step 8b heuristic now runs only when 8a returns `yes`. Founder agency comes first.)
+**Previous:** 1.2 (2026-04-25 — SaaSfast mode picker M0-M3 added at Step 8b, payment auto-swap, handover-bridge passes mode + payment_provider). 1.1 (2026-04-23 — MCP-absent paths now print a concrete install block and continue as local-only instead of failing silently; invalid replies retry up to 3 times).
 **Pillar:** EO-specific — the single entry point from EO-Brain strategy to Claude Code execution.
 **Purpose:** Replace the 75-line copy-paste bootstrap prompt from `5-CodeHandover/README.md` with one command that reads EO-Brain output, previews exactly what it will create, waits for approval, then executes `handover-bridge` with parameters extracted from phases 0-4.
 
@@ -193,7 +194,35 @@ Read and parse (no writes yet):
 | `mena_flag` | `1-ProjectBrain/icp.md` contains any of `Cairo Amman Riyadh Dubai UAE KSA MENA Arabic` → `true` | `false` |
 | `deploy_lane` | `4-Architecture/tech-stack-decision.md` key `deploy:` | `vercel` (safe default) |
 
+### Step 8a — Ask the founder: SaaSfast — yes or no?
+
+**Always ask.** SaaSfast is the EO MicroSaaS starter kit. It is not the default stack. Some founders want to use it; some explicitly don't (learning exercise, different starter, custom build). The founder picks first — only then does the SOP decide *how* to use it.
+
+Print exactly this (English template; Arabic analog when `lang=ar`):
+
+```
+🧰 Will this project use SaaSfast (the EO MicroSaaS starter kit)?
+
+  yes — I'll read your BRD and recommend the right subset to pull in
+        (auth, payment, landing, dashboard — only what fits).
+        You stay in control of the rest.
+
+  no  — Fully custom build. No SaaSfast pieces pulled in.
+        I'll scaffold the raw stack from your tech-stack-decision.md.
+
+Reply: yes / no
+```
+
+**Recording the answer:**
+- `yes` → set `saasfast_used = true`. Continue to Step 8b — heuristic picks `M1` / `M2` / `M3`.
+- `no` → set `saasfast_used = false`, `saasfast_mode = M0`. **Skip Step 8b.** Scaffold uses `tech-stack-decision.md` directly with no SaaSfast subset.
+- Anything else → re-ask up to 3 times, then default to `yes` (safest — heuristic's `M1` ambiguous default still keeps the founder in control of frontend) and note `saasfast_mode_defaulted=true` in evidence.
+
+The answer is recorded in the plan-mode preview (Step 9) and written to `architecture/tech-stack-decision.md` by `handover-bridge`. This question is **never** skipped, regardless of how clear the BRD signal looks. Founder agency comes first.
+
 ### Step 8b — Pick SaaSfast mode (M0–M3)
+
+**Run only when Step 8a returned `yes`.** If Step 8a returned `no`, `saasfast_mode = M0` is already locked — skip this step.
 
 SaaSfast is a toolkit, not a stack. Different products need different subsets. Read `SAASFAST-MODES.md` (side-car to this skill) and pick exactly one mode from M0–M3 based on the BRD + ICP.
 
@@ -262,7 +291,10 @@ Identity applied:
   Stories         {story_count}
   ACs             {ac_count}
   Language        {lang}
+  SaaSfast        {yes | no}                    ← Step 8a answer (founder picked)
   SaaSfast mode   {mode_code} — {mode_name} ({one-line rationale})
+                                                ← Step 8b heuristic, only when SaaSfast=yes
+                                                ← M0 directly when SaaSfast=no
   Payment         {payment_provider}
 
 Will NOT:
@@ -344,7 +376,7 @@ Writes performed in this step: zero. Everything is just parameter capture for St
 
 ### Step 10 — Invoke `handover-bridge`
 
-Pass the identity fields from Step 8, the `saasfast_mode` + `payment_provider` from Step 8b, and `github_intent` from Step 9b to the `handover-bridge` skill. It uses `saasfast_mode` to pick which scaffold subset to install (see `handover-bridge/SKILL.md` Step 4), and `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
+Pass the identity fields from Step 8, the **`saasfast_used` from Step 8a**, the `saasfast_mode` + `payment_provider` from Step 8b (or the locked `M0` when 8a returned `no`), and `github_intent` from Step 9b to the `handover-bridge` skill. It uses `saasfast_used` + `saasfast_mode` to pick which scaffold subset to install (see `handover-bridge/SKILL.md` Step 4 — `saasfast_used=false` always means "raw stack, no SaaSfast"; `saasfast_used=true` branches on `saasfast_mode`), and `github_intent` to decide whether to `git init` + first commit (for `create`, `point-existing`, `guided`) or skip git entirely (for `local-only`).
 
 Execute its 11-step sequence. If any step fails:
 - Log the failure to `$ROOT/.bootstrap-failures.log`
@@ -440,12 +472,13 @@ After every run, verify:
 | 7 | No writes before student approval | must pass |
 | 8 | GitHub-intent question asked when no origin was already set | must pass |
 | 9 | MCP presence detected (not assumed) before routing option 1/2/4 | must pass |
-| 10 | SaaSfast mode picked (M0–M3) + one-line rationale recorded | must pass |
-| 11 | Payment provider resolved (Stripe or regional swap) from BRD or MENA default | must pass |
-| 12 | `handover-bridge` invoked with extracted identity + `saasfast_mode` + `payment_provider` + `github_intent` | must pass |
-| 13 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
-| 14 | `local-only` path skipped git init entirely | must pass |
-| 15 | Evidence table printed post-success with bytes + line counts | must pass |
-| 16 | Next command recommendation cites first Story slug from BRD | must pass |
+| 10 | **SaaSfast yes/no asked explicitly (Step 8a) — never inferred from BRD alone** | **must pass** |
+| 11 | SaaSfast mode picked (M0–M3) + one-line rationale recorded — M0 directly when Step 8a returned `no`, otherwise heuristic on BRD | must pass |
+| 12 | Payment provider resolved (Stripe or regional swap) from BRD or MENA default | must pass |
+| 13 | `handover-bridge` invoked with extracted identity + `saasfast_used` + `saasfast_mode` + `payment_provider` + `github_intent` | must pass |
+| 14 | `eo-github` invoked only when `github_intent ∈ {create, point-existing, guided}` | must pass |
+| 15 | `local-only` path skipped git init entirely | must pass |
+| 16 | Evidence table printed post-success with bytes + line counts | must pass |
+| 17 | Next command recommendation cites first Story slug from BRD | must pass |
 
-Threshold: 16/16. Below = bug → capture in `.claude/lessons.md`.
+Threshold: 17/17. Below = bug → capture in `.claude/lessons.md`.

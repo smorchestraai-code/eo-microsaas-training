@@ -4,6 +4,12 @@
 **Read by:** `eo-dev-start` (Step 8b — resolve `payment_provider`), `handover-bridge` (Step 4 — scaffold the right lib), `eo-dev-plan` (plans that touch payment).
 **Rule:** EO projects are **never Stripe-only**. MENA ICPs get a Gulf-native provider by default.
 
+**Applies regardless of `saasfast_used`.** Payment provider selection is independent of the SaaSfast yes/no answer:
+- `saasfast_used=true` (M1/M2/M3) → payment lib lands inside the SaaSfast `src/lib/payment/<provider>/` subset.
+- `saasfast_used=false` (M0) → if the BRD names a payment provider, the same `src/lib/payment/<provider>/` lib is scaffolded standalone (without SaaSfast wrappers); if the BRD does not name payment, no payment lib is scaffolded — the founder adds it manually when needed.
+
+The provider matrix and resolution heuristic below apply in both cases.
+
 ---
 
 ## Provider matrix

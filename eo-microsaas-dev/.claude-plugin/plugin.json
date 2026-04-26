@@ -1,6 +1,6 @@
 {
   "name": "eo-microsaas-dev",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "EO MicroSaaS Dev plugin for non-technical founders — weekend-ship MVP chain. Numbered build chain 1-10 (/1-eo-dev-start → /2-eo-dev-plan → /3-eo-code → /4-eo-review → /5-eo-score → /6-eo-bridge-gaps → /7-eo-ship, plus lifecycle /8-eo-dev-repair, /9-eo-debug, /10-eo-retro) + 3 utilities (/eo-status, /eo-guide, /eo-github) + 2 edit-boundary helpers (/eo-freeze, /eo-unfreeze) + 11 skills. One-shot bootstrap via /1-eo-dev-start (reads EO-Brain phases 0-4, picks SaaSfast mode M0-M3 from BRD, plan-mode gated). GitHub admin via /eo-github (create / point-existing / guided / audit; MCP-only with manual fallback; plan-aware; trunk-vs-dual branch strategy; branch protection deferred to post-first-CI; slug collision retry; 429/422 handling). Surgical repair via /8-eo-dev-repair. 5-hat scoring with 90+ ship gate. Self-scoring on ship/repair/debug. Cross-session resumability via /eo-guide — local-only founders advance through sprint-loop phases with a still-local banner, never stuck. CEO-voice founder-facing artifacts. MENA-specific checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Every refuse path names a concrete next door.",
   "author": {
     "name": "SMOrchestra.ai / Entrepreneurs Oasis MENA",

@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "EO MicroSaaS training marketplace — student-facing Claude Code plugin for the weekend-ship MVP workflow. Pair with EO-Brain (business brain) for full idea → shipped MVP pipeline.",
-    "version": "1.2.0"
+    "version": "1.2.1"
   },
   "plugins": [
     {
       "name": "eo-microsaas-dev",
       "source": "./eo-microsaas-dev",
-      "description": "Weekend-ship MVP workflow for non-technical founders. Numbered build chain 1–10 (/1-eo-dev-start → /2-eo-dev-plan → /3-eo-code → /4-eo-review → /5-eo-score → /6-eo-bridge-gaps → /7-eo-ship + lifecycle /8-eo-dev-repair, /9-eo-debug, /10-eo-retro) + utilities (/eo-guide, /eo-status, /eo-github, /eo-freeze, /eo-unfreeze) + 11 skills. One-shot bootstrap reads EO-Brain phases 0-4, picks SaaSfast mode M0–M3 from BRD, plan-mode gated. Self-scoring on ship/repair/debug. CEO-voice founder-facing artifacts. MENA checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Hidden plumbing: gstack + superpowers (graceful degrade)."
+      "description": "Weekend-ship MVP workflow for non-technical founders. Numbered build chain 1–10 (/1-eo-dev-start → /2-eo-dev-plan → /3-eo-code → /4-eo-review → /5-eo-score → /6-eo-bridge-gaps → /7-eo-ship + lifecycle /8-eo-dev-repair, /9-eo-debug, /10-eo-retro) + utilities (/eo-guide, /eo-status, /eo-github, /eo-freeze, /eo-unfreeze) + 11 skills. One-shot bootstrap asks the founder explicitly whether to use SaaSfast (yes/no), then — if yes — picks the right mode (M0–M3) from the BRD. Plan-mode gated. Self-scoring on ship/repair/debug. CEO-voice founder-facing artifacts. MENA checks (Arabic RTL, mobile 375px). BRD traceability from EO-Brain Phase 5. Hidden plumbing: gstack + superpowers (graceful degrade)."
     }
   ]
 }
