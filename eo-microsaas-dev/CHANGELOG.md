@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.1] — 2026-04-26
+
+Hotfix on top of 1.4.0. Smoke test surfaced a real gap: the SaaSfast mode picker decided silently from the BRD without asking the founder first. Founder agency comes before the heuristic.
+
+### Fixed
+- **`eo-dev-start` Step 8a — explicit `SaaSfast yes/no` question** is now asked on every bootstrap, in all cases. The BRD is no longer the sole input. Two answers:
+  - `yes` → Step 8b heuristic picks `M1` / `M2` / `M3` from the BRD as before.
+  - `no`  → `saasfast_mode` is locked to `M0`, Step 8b is skipped, and the scaffold uses `tech-stack-decision.md` directly with zero SaaSfast pieces pulled in.
+  - Anything else → re-asks up to 3 times, then defaults to `yes` (the safest default — `M1` keeps the founder in control of frontend).
+- **Plan-mode preview** now exposes the explicit `SaaSfast: yes | no` line above the mode line, so the founder can confirm both the choice and the recommended mode before scaffolding starts.
+- **`handover-bridge` Step 4** now receives `saasfast_used` from `eo-dev-start` Step 8a and treats `saasfast_used=false` as a hard precedence rule — no M1/M2/M3 branch runs even if a stale `saasfast_mode` value is passed.
+
+### Changed
+- **`eo-dev-start` self-score: 16 → 17 checks.** New check #10: "SaaSfast yes/no asked explicitly — never inferred from BRD alone." Existing checks renumbered.
+- **`eo-dev-start` skill version: 1.2 → 1.3.**
+- **Marketplace description (`1.2.0` → `1.2.1`)** — explicitly mentions the `yes/no` question step.
+
+### Migration — 1.4.0 → 1.4.1
+No action needed. Existing 1.4.0 installs run `claude plugin update eo-microsaas-dev@eo-microsaas-training` and the next `/1-eo-dev-start` run picks up the explicit question. Projects already bootstrapped in 1.4.0 keep working — the question only fires on fresh bootstraps. If a 1.4.0 project picked the wrong mode silently, run `/8-eo-dev-repair` and the mode-consistency check now reads the recorded `saasfast_used` value instead of inferring.
+
+---
+
 ## [1.4.0] — 2026-04-25
 
 Weekend-shipment release. Recalibrates the plugin around one promise: a non-technical founder takes an EO-Brain package on Friday evening, builds through Saturday, and ships to production by Sunday night. Everything in this release supports that promise — visible sequence, hidden plumbing, lean defaults, CEO voice.

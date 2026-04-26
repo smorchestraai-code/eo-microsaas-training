@@ -16,6 +16,17 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.1] — 2026-04-26
+
+### Added
+- **`eo-microsaas-dev` plugin 1.4.1** — hotfix. `/1-eo-dev-start` now asks the founder `SaaSfast: yes / no` explicitly on every bootstrap (Step 8a). The mode heuristic (Step 8b) only runs when the answer is yes; a `no` answer locks `M0` and pulls in zero SaaSfast pieces. Plan-mode preview exposes the answer above the recommended mode. `handover-bridge` honors a hard precedence rule: `saasfast_used=false` always means raw stack, regardless of any stale mode value. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** `.claude-plugin/marketplace.json` metadata.version → 1.2.1. Plugin description updated to mention the explicit yes/no question step.
+
+### Changed
+- No breaking changes. Existing 1.4.0 projects keep working. Fresh bootstraps in 1.4.1 see the explicit question. `claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the fix.
+
+---
+
 ## [1.2.0] — 2026-04-25
 
 ### Added

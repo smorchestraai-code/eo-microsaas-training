@@ -1,16 +1,16 @@
-# EO-SPECIFIC-LAYER.md — files scaffolded on top when the mode includes a backend
+# EO-SPECIFIC-LAYER.md — EO-flavored plumbing scaffolded on top of the mode subset
 
 **Status:** living doc.
 **Read by:** `handover-bridge` (Step 4b — after the mode subset lands, install the EO-specific layer on top).
-**Applies to:** M1, M2, M3. Skipped for M0.
+**Applies to:** M1, M2, M3 (always). Also applies to M0 **when the BRD signals MENA + a web-app shape** (founder said `no` to SaaSfast but the product is still a MENA web app — the layer's MENA defaults + RLS policies + founder-profile schema are SaaSfast-independent and stay useful). Skipped for M0 only when the product is not a web app at all.
 
 ---
 
 ## Why this layer exists
 
-Every EO project, regardless of mode, needs the same handful of founder-specific files that don't come from SaaSfast:
+Every EO project, regardless of whether it uses SaaSfast, needs the same handful of founder-specific files:
 
-- The 5 founder profile fields (name, country code, company, industry, founder-since year)
+- The 5 founder profile fields (Arabic name, English name, country, company name, founder-since year)
 - MENA-aware defaults (Cairo / Tajawal fonts, `dir="rtl"` wiring, Gulf phone prefixes)
 - Distribution hooks (WhatsApp, GHL, Unifonic SMS fallback)
 - Supabase RLS policy templates tuned for multi-tenant MENA data
@@ -95,7 +95,8 @@ If a file already exists at the destination → refuse; route to `/8-eo-dev-repa
 
 ## Anti-patterns
 
-- **Shipping the layer to M0 projects** — M0 is "not a web app." None of this applies. Skip.
+- **Shipping the layer to non-web-app M0 projects** — internal CLI / pure API / native mobile. None of this applies. Skip.
+- **Skipping the layer when the founder said `no` to SaaSfast but the product is a MENA web app** — the layer is SaaSfast-independent. MENA defaults + founder profile + RLS policies still apply. Install it.
 - **Wiring distribution clients at scaffold time** — they're skeletons. Real tokens land when the founder opens an activation story.
 - **Hard-coding country list in UI** — always import from `mena-defaults/phone.ts`. New country = one file change.
 - **Skipping RLS policies** — even for a directory product, row-level security is non-negotiable. Every table gets one policy at minimum.

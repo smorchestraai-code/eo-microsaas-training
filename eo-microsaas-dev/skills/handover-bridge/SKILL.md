@@ -177,9 +177,11 @@ This is non-negotiable: a component shipped that doesn't match the artifact → 
 
 ### Step 4 — Scaffold src/ per SaaSfast mode + tech stack
 
-**Inputs (passed from `eo-dev-start` Step 10):** `saasfast_mode` (M0/M1/M2/M3), `payment_provider`, `stack`, `mena_flag`.
+**Inputs (passed from `eo-dev-start` Step 10):** `saasfast_used` (true/false from Step 8a), `saasfast_mode` (M0/M1/M2/M3 from Step 8b), `payment_provider`, `stack`, `mena_flag`.
 
-**Branch on mode** — see `../eo-dev-start/SAASFAST-MODES.md` for the full per-mode subset table.
+**Hard precedence rule:** `saasfast_used=false` always means M0 — scaffold raw stack from `tech-stack-decision.md`, pull in zero SaaSfast pieces. Do not run any M1/M2/M3 branch even if a stale `saasfast_mode` value was passed. The founder said no in Step 8a; respect it.
+
+**Branch on mode** (only when `saasfast_used=true`) — see `../eo-dev-start/SAASFAST-MODES.md` for the full per-mode subset table.
 
 #### M0 — No SaaSfast
 Scaffold per `stack` only:
