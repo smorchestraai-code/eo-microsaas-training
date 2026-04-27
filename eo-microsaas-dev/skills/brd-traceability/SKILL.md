@@ -102,7 +102,7 @@ EO-Brain Phase 4 (Architecture) produces the BRD. The `handover-bridge` skill co
 
 - **eo-scorer Engineering hat Q2** runs the traceability grep
 - **/7-eo-ship** blocks merge if coverage < 90%
-- **/10-eo-retro** reports AC coverage trend week-over-week
+- **/8-eo-retro** reports AC coverage trend week-over-week
 
 ---
 

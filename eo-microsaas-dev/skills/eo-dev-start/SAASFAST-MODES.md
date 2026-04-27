@@ -1,6 +1,6 @@
 # SAASFAST-MODES.md — the four modes, one picked per project
 
-**Status:** living doc. Update via `/10-eo-retro` when a product doesn't fit any row.
+**Status:** living doc. Update via `/8-eo-retro` when a product doesn't fit any row.
 **Read by:** `eo-dev-start` (Step 8a + Step 8b), `handover-bridge` (Step 4), `eo-dev-plan` (top of every plan), `eo-dev-repair` (mode-consistency check).
 **Written to:** `$ROOT/architecture/tech-stack-decision.md` as a single `SaaSfast mode:` line + rationale, prefixed by the founder's `SaaSfast: yes | no` answer from Step 8a. Every downstream command reads both lines.
 
@@ -88,15 +88,15 @@ A project's mode is picked once at `/1-eo-dev-start`. Three switch types are sup
 
 **1. Mode shift within `yes` (e.g. M1 → M2 when a directory product adds a paywalled dashboard):**
 1. Update `architecture/tech-stack-decision.md` `SaaSfast mode:` line.
-2. Run `/8-eo-dev-repair` — it reads the new mode, scaffolds the delta, and rescores.
+2. Run `/eo-dev-repair` — it reads the new mode, scaffolds the delta, and rescores.
 
 **2. Founder originally answered `no` and now wants to opt in:**
 1. Update `architecture/tech-stack-decision.md`: change `SaaSfast: no` → `SaaSfast: yes`, add `SaaSfast mode: M1 (or whichever mode the BRD signals).`
-2. Run `/8-eo-dev-repair` — it detects the `yes` flip, runs the Step 8b heuristic against the current BRD, prints the recommended mode for confirmation, then scaffolds the missing SaaSfast subset on top of the existing project.
+2. Run `/eo-dev-repair` — it detects the `yes` flip, runs the Step 8b heuristic against the current BRD, prints the recommended mode for confirmation, then scaffolds the missing SaaSfast subset on top of the existing project.
 
 **3. Founder originally answered `yes` and now wants to opt out:**
 1. Update `architecture/tech-stack-decision.md`: change `SaaSfast: yes` → `SaaSfast: no`, change `SaaSfast mode:` to `M0`.
-2. Run `/8-eo-dev-repair` — it does **not** auto-delete SaaSfast pieces (those are now founder-owned code). It records the opt-out and stops generating new SaaSfast scaffolds going forward. The founder can `git rm` what they don't want.
+2. Run `/eo-dev-repair` — it does **not** auto-delete SaaSfast pieces (those are now founder-owned code). It records the opt-out and stops generating new SaaSfast scaffolds going forward. The founder can `git rm` what they don't want.
 
 In all three cases: never silently change the mode inside a story. Plan mode first, approval, then repair.
 
@@ -104,7 +104,7 @@ In all three cases: never silently change the mode inside a story. Plan mode fir
 
 ## When none of the four fit
 
-That's a lesson. Capture it via `/10-eo-retro`:
+That's a lesson. Capture it via `/8-eo-retro`:
 - What was the product's shape?
 - Which mode came closest?
 - What subset of SaaSfast was actually useful?

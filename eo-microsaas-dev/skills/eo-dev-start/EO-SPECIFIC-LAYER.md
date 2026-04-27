@@ -78,7 +78,7 @@ skills/eo-dev-start/eo-layer/supabase-policies/      → $ROOT/supabase/policies
 skills/eo-dev-start/eo-layer/supabase-migrations/    → $ROOT/supabase/migrations/
 ```
 
-If a file already exists at the destination → refuse; route to `/8-eo-dev-repair`. Never overwrite silently.
+If a file already exists at the destination → refuse; route to `/eo-dev-repair`. Never overwrite silently.
 
 **Template files ship with this plugin** so the scaffold is reproducible and reviewable in PRs. When the layer evolves (e.g. a 6th founder field, a new distribution channel), the PR updates this doc + the template files in one change.
 
@@ -105,4 +105,4 @@ If a file already exists at the destination → refuse; route to `/8-eo-dev-repa
 
 ## Retro hook
 
-If a student's project needs a 6th file on top of this layer (e.g. a Ramadan calendar helper, a Hijri-date formatter), capture via `/10-eo-retro`. When 2+ students hit the same gap → promote into this layer via PR.
+If a student's project needs a 6th file on top of this layer (e.g. a Ramadan calendar helper, a Hijri-date formatter), capture via `/8-eo-retro`. When 2+ students hit the same gap → promote into this layer via PR.

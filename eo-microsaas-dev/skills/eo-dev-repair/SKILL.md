@@ -120,7 +120,7 @@ On `y` → for each missing silent-repair-safe signal, write from template using
 ```
 chore(repair): regenerate {list of files} via eo-dev-repair
 
-Triggered by /8-eo-dev-repair. Core artifacts (BRD, architecture, project-brain)
+Triggered by /eo-dev-repair. Core artifacts (BRD, architecture, project-brain)
 untouched. Accumulated lessons preserved.
 ```
 
@@ -145,7 +145,7 @@ Refuse-and-route (must come from EO-Brain, cannot be regenerated):
 Why this refusal:
   Silent repair here would hide the upstream gap. You would end up with a
   scaffolded project missing its own spec or identity. Fix the root cause
-  in EO-Brain, then re-run /1-eo-dev-start (empty project) or /8-eo-dev-repair
+  in EO-Brain, then re-run /1-eo-dev-start (empty project) or /eo-dev-repair
   (if some files survive).
 
 No writes made.

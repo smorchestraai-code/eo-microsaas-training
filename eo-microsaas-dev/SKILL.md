@@ -15,9 +15,9 @@ description: |
   /5-eo-score — Run the 5-hat scorecard. Save to docs/qa-scores/. Update trend CSV.
   /6-eo-bridge-gaps — Lift the weakest hat when composite is 80-89.
   /7-eo-ship — Final gate. Self-score, write PR body, push, deploy.
-  /8-eo-dev-repair — Triage a partially-bootstrapped project. Silent-repair safe pieces.
-  /9-eo-debug — Systematic root-cause on a bug. Point at evidence. Resolve without hand-holding.
-  /10-eo-retro — End-of-sprint. Pull lessons, update .claude/lessons.md for next session.
+  /eo-dev-repair — Triage a partially-bootstrapped project. Silent-repair safe pieces.
+  /eo-debug — Systematic root-cause on a bug. Point at evidence. Resolve without hand-holding.
+  /8-eo-retro — End-of-sprint. Pull lessons, update .claude/lessons.md for next session.
   Utilities (unnumbered):
   /eo-guide — Where am I, what's next? Reconciles tracker vs filesystem.
   /eo-status — Compact dashboard snapshot.
@@ -55,9 +55,9 @@ Walks a student from feature idea → shipped PR following the 7-pillar workflow
 | /5-eo-score | 5-hat quality gate | eo-scorer skill |
 | /6-eo-bridge-gaps | Lift weakest hat (80-89 band) | eo-scorer rubric + targeted auto-fix |
 | /7-eo-ship | Self-score + PR + deploy | superpowers:finishing-a-development-branch + gstack:canary + gstack:land-and-deploy |
-| /8-eo-dev-repair | Silent-repair partial bootstrap | eo-dev-repair skill |
-| /9-eo-debug | Root-cause bug analysis | gstack:investigate + superpowers:systematic-debugging |
-| /10-eo-retro | Sprint close | lessons-manager skill + gstack:retro (if present) |
+| /eo-dev-repair | Silent-repair partial bootstrap | eo-dev-repair skill |
+| /eo-debug | Root-cause bug analysis | gstack:investigate + superpowers:systematic-debugging |
+| /8-eo-retro | Sprint close | lessons-manager skill + gstack:retro (if present) |
 
 ## Skills in this plugin
 
@@ -99,7 +99,7 @@ eo-scorer (this plugin, skills/eo-scorer/):
 
 ## How to invoke
 
-Direct (numbered chain): `/1-eo-dev-start`, `/2-eo-dev-plan`, `/3-eo-code`, `/4-eo-review`, `/5-eo-score`, `/6-eo-bridge-gaps`, `/7-eo-ship`, `/8-eo-dev-repair`, `/9-eo-debug`, `/10-eo-retro`
+Direct (numbered chain): `/1-eo-dev-start`, `/2-eo-dev-plan`, `/3-eo-code`, `/4-eo-review`, `/5-eo-score`, `/6-eo-bridge-gaps`, `/7-eo-ship`, `/eo-dev-repair`, `/eo-debug`, `/8-eo-retro`
 Utilities: `/eo-guide`, `/eo-status`, `/eo-github`, `/eo-freeze`, `/eo-unfreeze`
 
 Or by name: "Use eo-microsaas-dev to start a new feature for password reset."

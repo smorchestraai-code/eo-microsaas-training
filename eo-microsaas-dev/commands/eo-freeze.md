@@ -34,7 +34,7 @@ Pass no argument → print whether a freeze is active and on which path.
 ## When NOT to run
 
 - Refactors that legitimately span folders — you'll just end up running `/eo-unfreeze` immediately.
-- Build / scaffold steps (`/1-eo-dev-start`, `/8-eo-dev-repair`) — they need broad write access by design.
+- Build / scaffold steps (`/1-eo-dev-start`, `/eo-dev-repair`) — they need broad write access by design.
 
 ## Output
 
@@ -46,5 +46,5 @@ Outside this path, I'll refuse writes until /eo-unfreeze.
 ## Integration
 
 - **Pairs with:** `/eo-unfreeze` (lift the boundary)
-- **Bypassed by:** `/1-eo-dev-start`, `/8-eo-dev-repair` (they scaffold; freeze auto-lifts for these)
+- **Bypassed by:** `/1-eo-dev-start`, `/eo-dev-repair` (they scaffold; freeze auto-lifts for these)
 - **Hidden dependency:** `gstack:freeze` if installed. Falls back to session-local rule otherwise. The founder sees the same behavior either way.

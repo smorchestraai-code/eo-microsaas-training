@@ -100,4 +100,4 @@ Update `_dev-progress.md` row for this story:
 - `Notes` = commit sha + deploy target (e.g., `a1b2c3d → vercel prod`)
 - `Last updated` = today; `Last command` = `/7-eo-ship`
 
-If the deploy or health-check failed → DO NOT set `✅ shipped`. Set `Status` = `⚠️ blocked` and `Notes` = rollback reason. `/eo-guide` will route back to `/9-eo-debug`.
+If the deploy or health-check failed → DO NOT set `✅ shipped`. Set `Status` = `⚠️ blocked` and `Notes` = rollback reason. `/eo-guide` will route back to `/eo-debug`.

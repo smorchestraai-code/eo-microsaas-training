@@ -4,10 +4,10 @@ Claude Code plugin for EO MicroSaaS founders — weekend-ship MVP chain. Built f
 
 ## What you get
 
-- **15 slash commands** — numbered build chain `/1-eo-dev-start` → `/2-eo-dev-plan` → `/3-eo-code` → `/4-eo-review` → `/5-eo-score` → `/6-eo-bridge-gaps` → `/7-eo-ship`, plus lifecycle `/8-eo-dev-repair`, `/9-eo-debug`, `/10-eo-retro`, plus utilities `/eo-status`, `/eo-guide`, `/eo-github`, `/eo-freeze`, `/eo-unfreeze`
+- **15 slash commands** — linear build chain `/1-eo-dev-start` → `/2-eo-dev-plan` → `/3-eo-code` → `/4-eo-review` → `/5-eo-score` → `/6-eo-bridge-gaps` → `/7-eo-ship` → `/8-eo-retro` (8 numbered, in order across the weekend); plus 7 utilities (un-numbered, alphabetical): `/eo-debug`, `/eo-dev-repair`, `/eo-freeze`, `/eo-github`, `/eo-guide`, `/eo-status`, `/eo-unfreeze`
 - **11 skills** — `eo-dev-start` (SaaSfast-mode picker M0-M3 + one-shot bootstrap from EO-Brain phases 0-4), `handover-bridge` (mode-aware scaffolder + BRD post-process for Weekend MVP + v2 roadmap blocks), `eo-dev-repair` (silent-repair-safe vs refuse-and-route triage), `eo-github` (MCP-only GitHub admin, plan-aware), `eo-guide` (phase detector + next-command router), 5-hat scoring (calibrated, honest), lessons manager, elegance pause, Arabic RTL checker, MENA mobile check, BRD traceability
 - **150-line CLAUDE.md template** — CEO voice, project-specific, no engineering jargon surfaced
-- **Score gate: 90+ composite or don't ship** — non-negotiable. Self-scoring on `/7-eo-ship`, `/8-eo-dev-repair`, `/9-eo-debug`.
+- **Score gate: 90+ composite or don't ship** — non-negotiable. Self-scoring on `/7-eo-ship`, `/eo-dev-repair`, `/eo-debug`.
 - **Zero-friction start** — type `/1-eo-dev-start` in a fresh project. Plan mode previews every action before writing. GitHub only touched after explicit choice.
 
 ## The 7 pillars
@@ -44,16 +44,16 @@ eo-microsaas-dev/
   README.md                       ← this file
   CHANGELOG.md
   commands/
-    1-eo-dev-start.md             ← bootstrap + SaaSfast-mode picker (v1.4.0; carries v1.3.0 4-option GitHub Q + v1.3.1 MCP-absent continues locally)
+    1-eo-dev-start.md             ← bootstrap + SaaSfast-mode picker (v1.4.0; v1.3.0 4-option GitHub Q + v1.3.1 MCP-absent continues locally)
     2-eo-dev-plan.md              ← plan a feature (plan-mode gated)
     3-eo-code.md                  ← TDD via superpowers
     4-eo-review.md                ← self-review + Arabic/mobile checks
     5-eo-score.md                 ← 5-hat composite (ship gate 90+)
     6-eo-bridge-gaps.md           ← lift weakest hat (80-89 band)
     7-eo-ship.md                  ← self-score + PR + deploy (v1.4.0 adds self-score gate)
-    8-eo-dev-repair.md            ← surgical repair + self-score (v1.4.0; from v1.2.0 base)
-    9-eo-debug.md                 ← root-cause + self-score after fix (v1.4.0)
-    10-eo-retro.md                ← sprint close + lesson pruning
+    8-eo-retro.md                 ← sprint close + lesson pruning (renamed from /10 in v1.4.2; numbered chain is now linear 1-8)
+    eo-dev-repair.md              ← surgical repair + self-score (utility; demoted from /8 in v1.4.2 — fires out-of-band, not linear)
+    eo-debug.md                   ← root-cause + self-score after fix (utility; demoted from /9 in v1.4.2 — fires out-of-band, not linear)
     eo-github.md                  ← GitHub admin (v1.3.0 create/point/guided/audit; v1.3.1 stuck-path hardening)
     eo-guide.md                   ← phase detector + next-step router (v1.3.0 local-only routing; v1.3.1 no short-circuit)
     eo-status.md                  ← compact dashboard
