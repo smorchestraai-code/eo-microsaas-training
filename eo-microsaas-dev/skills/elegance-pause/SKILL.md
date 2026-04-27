@@ -76,7 +76,7 @@ If a PR ships without an elegance pause block in the description:
 
 1. **eo-scorer** caps Engineering hat at 7 automatically
 2. **lessons-manager** appends a lesson if a bug later surfaces in the unpaused code
-3. **/10-eo-retro** surfaces the unpaused PRs for the sprint — compounding signal
+3. **/8-eo-retro** surfaces the unpaused PRs for the sprint — compounding signal
 
 ---
 

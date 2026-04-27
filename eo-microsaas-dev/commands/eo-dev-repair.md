@@ -2,7 +2,7 @@
 description: Triage a partially-bootstrapped project. Silently repairs cheap pieces (lessons.md, hooks, CLAUDE.md). Refuses and routes when core artifacts (BRD, architecture, project-brain) are missing.
 ---
 
-# /8-eo-dev-repair
+# /eo-dev-repair
 
 Activate the **eo-dev-repair** skill.
 
@@ -27,7 +27,7 @@ Read `skills/eo-dev-repair/SKILL.md` for the full classification table + repair 
 
 ## Arguments
 
-None. `/8-eo-dev-repair` reads filesystem every time.
+None. `/eo-dev-repair` reads filesystem every time.
 
 ## When to run
 

@@ -2,7 +2,7 @@
 description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacing.
 ---
 
-# /10-eo-retro
+# /8-eo-retro
 
 **Pillar:** Boris #3 — Self-Improvement Loop
 **When to run:** End of sprint (weekly or bi-weekly).
@@ -78,7 +78,7 @@ description: End-of-sprint retro. Score trends, lesson pruning, pattern surfacin
 ## After retro — update tracker
 
 Retro is sprint-scoped, not story-scoped. Update `_dev-progress.md` top-of-file metadata only:
-- `Last updated` = today; `Last command` = `/10-eo-retro`
+- `Last updated` = today; `Last command` = `/8-eo-retro`
 - Append one line under a `## Retros` section with a link to the retro file (e.g., `- 2026-04-21 — docs/retros/2026-04-21.md (avg composite 87, focus: QA)`)
 
 Do not touch individual story rows — their state reflects code, not reflection.

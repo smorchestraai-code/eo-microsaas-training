@@ -1,7 +1,7 @@
 # Dev Progress — {PROJECT_NAME}
 
 > Tracker for `/eo-guide`. Filesystem is the source of truth; this file is a view.
-> Every numbered command (`/1-eo-dev-start` through `/10-eo-retro`) writes here at end-of-run. `/eo-guide` reconciles drift.
+> Every numbered command (`/1-eo-dev-start` through `/8-eo-retro`) writes here at end-of-run. `/eo-guide` reconciles drift.
 
 Last updated: {DATE}
 Current sprint: {SPRINT_NUMBER}
@@ -35,7 +35,7 @@ Last command: none
 - Score < 80 → status cannot be `shipped`
 - `shipped` → must have both score ≥ 90 row AND deploy log entry
 - `coding` without a plan file = impossible; `/eo-guide` flags as inconsistent
-- Phase `v2` rows stay `🧊 frozen` until MVP is shipped. Unfreeze by editing the BRD `[@Phase2]` tag + running `/8-eo-dev-repair`.
+- Phase `v2` rows stay `🧊 frozen` until MVP is shipped. Unfreeze by editing the BRD `[@Phase2]` tag + running `/eo-dev-repair`.
 
 ## Cadence — weekend shipment
 
@@ -47,4 +47,4 @@ MVP = one weekend. Not 5 weeks.
 | **Saturday** | `/2-eo-dev-plan` → `/3-eo-code` | Stories 1–4 one at a time, TDD, elegance pause per commit |
 | **Sunday** | `/4-eo-review` → `/5-eo-score` → `/6-eo-bridge-gaps` → `/7-eo-ship` | Self-scored; 90+ ships to prod, deploy + health check, first 3 users told |
 
-After weekend — `/10-eo-retro` once, then v2 planning starts by flipping a `🧊 frozen` row to `⬜ not started` + running `/2-eo-dev-plan story-5`.
+After weekend — `/8-eo-retro` once, then v2 planning starts by flipping a `🧊 frozen` row to `⬜ not started` + running `/2-eo-dev-plan story-5`.

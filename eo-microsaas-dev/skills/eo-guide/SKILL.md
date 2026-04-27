@@ -1,6 +1,6 @@
 ---
 name: eo-guide
-description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Routes to /1-eo-dev-start for fresh projects, /8-eo-dev-repair for partial bootstraps, and /eo-github for local-only projects ready to promote. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
+description: "Student-resumption guide for Claude Code build phase. Scans project state, detects current phase of the build loop, and recommends the next /eo-* command. Works in fresh chats — student types /eo-guide after opening Claude Code in the project, gets phase + next command + ETA. Routes to /1-eo-dev-start for fresh projects, /eo-dev-repair for partial bootstraps, and /eo-github for local-only projects ready to promote. Triggers on: 'eo guide', 'where am I', 'what's next', 'next step', 'guide me', '/eo-status', 'status', 'check progress'."
 version: "1.3.1"
 ---
 
@@ -85,7 +85,7 @@ Evaluate in order; first match wins:
 | # | Condition | Phase | Next command |
 |---|-----------|-------|--------------|
 | 1 | No `CLAUDE.md` AND no `architecture/brd.md` AND no `.claude/lessons.md` (truly empty) | `pre-bootstrap` | `/1-eo-dev-start` — reads EO-Brain, plan-mode gate, invokes handover-bridge. Supersedes the old "copy-paste Section 5 prompt" flow. |
-| 2 | At least one but not all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, `.env.example`, `docs/ux-reference/` (partial state) | `bootstrap-incomplete` | `/8-eo-dev-repair` — triages missing pieces, silently repairs regeneratable files, refuses and routes when core artifacts (BRD, architecture, project-brain) are missing. |
+| 2 | At least one but not all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, `.env.example`, `docs/ux-reference/` (partial state) | `bootstrap-incomplete` | `/eo-dev-repair` — triages missing pieces, silently repairs regeneratable files, refuses and routes when core artifacts (BRD, architecture, project-brain) are missing. |
 | 3 | Bootstrap complete (all of: `CLAUDE.md`, `.claude/lessons.md`, `_dev-progress.md`, `.github/workflows/ci.yml`) **AND** `has_git=false` **AND** no `docs/plans/story-*.md` files yet | `local-only-bootstrapped` | Keep building locally. Your next sprint step is `/2-eo-dev-plan Story-1-{slug}`. Run it when you're ready to plan Story 1. When your MVP ships end-to-end, run `/eo-github` to push up. No git, no network until then. |
 | 4 | No plan file for any ⬜ story | `ready-to-plan` | `/2-eo-dev-plan Story-{N}-{slug}` for the first ⬜ story |
 | 5 | Plan exists, all tests `.skip` for target story | `ready-to-code` | `/3-eo-code` |
@@ -95,7 +95,7 @@ Evaluate in order; first match wins:
 | 9 | Latest score ≥ 90, no `ship:` commit for this story, `has_git=true`, `has_remote=true` | `ready-to-ship` | `/7-eo-ship` |
 | 10 | Latest score ≥ 90, no `ship:` commit for this story, `has_git=true`, `has_remote=false` | `ready-to-ship-but-no-remote` | Run `/eo-github` first (create or point-existing). `/7-eo-ship` needs a remote to push to. |
 | 11 | Latest score ≥ 90, no `ship:` commit for this story, `has_git=false` (local-only student reached ship-readiness) | `ready-to-ship-local-only` | 🎉 MVP ready to go public. Run `/eo-github` → pick `create` or `point-existing`. That skill does git init + first commit + push in one shot. Then re-run `/7-eo-ship`. |
-| 12 | `ship:` commit exists, no retro for this sprint | `ready-to-retro` | `/10-eo-retro` |
+| 12 | `ship:` commit exists, no retro for this sprint | `ready-to-retro` | `/8-eo-retro` |
 | 13 | All BRD stories shipped + retros done | `project-complete` | Soft launch + 15 listings |
 | 14 | None of the above → inconsistent | `inconsistent` | Fall through to Mode 3 diagnostic |
 
@@ -249,7 +249,7 @@ To keep this promise:
 | `eo-scorer` | Writes score files that `/eo-guide` parses for phase detection. |
 | `brd-traceability` | Defines the `@AC-N.N` tag that `/eo-guide` uses to count tests per story. |
 | `lessons-manager` | Surfaces relevant lessons when the state shows repeated failures on the same story. |
-| `/2-eo-dev-plan` through `/10-eo-retro` | Each writes one row to `_dev-progress.md` at end-of-run. `/eo-guide` reconciles. |
+| `/2-eo-dev-plan` through `/8-eo-retro` | Each writes one row to `_dev-progress.md` at end-of-run. `/eo-guide` reconciles. |
 
 ---
 

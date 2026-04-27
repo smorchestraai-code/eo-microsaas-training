@@ -225,7 +225,7 @@ Recorded: {date}
 ---
 ```
 
-Every downstream command (`/2-eo-dev-plan`, `/3-eo-code`, `/8-eo-dev-repair`) reads this block.
+Every downstream command (`/2-eo-dev-plan`, `/3-eo-code`, `/eo-dev-repair`) reads this block.
 
 ### Step 4b — Install the EO-specific layer (M1/M2/M3 only; skip for M0)
 
@@ -239,7 +239,7 @@ See `../eo-dev-start/EO-SPECIFIC-LAYER.md` for the full contract. Copy the 5 tem
 | `skills/eo-dev-start/eo-layer/supabase-policies/` | `$ROOT/supabase/policies/` |
 | `skills/eo-dev-start/eo-layer/supabase-migrations/` | `$ROOT/supabase/migrations/` |
 
-If a destination file already exists → refuse; exit; route to `/8-eo-dev-repair`. Never overwrite silently.
+If a destination file already exists → refuse; exit; route to `/eo-dev-repair`. Never overwrite silently.
 
 If the template directories don't yet exist in the plugin (early v1.4.0), degrade gracefully: print one line noting the layer will be added in a later release, continue scaffold. Do not block on missing EO-layer templates.
 
@@ -263,7 +263,7 @@ After copying `architecture/brd.md` into the project, inject two framing blocks 
 ```
 
 If `story_count ≤ 4` → inject only the Weekend MVP block; skip v2 block.
-If the BRD already has either marker verbatim → do not duplicate. Idempotent re-runs are fine (handover-bridge is one-shot, but `/8-eo-dev-repair` re-runs this post-process).
+If the BRD already has either marker verbatim → do not duplicate. Idempotent re-runs are fine (handover-bridge is one-shot, but `/eo-dev-repair` re-runs this post-process).
 
 **Tag ACs** deferred to v2: for each `phase2_stories`, append ` [@Phase2]` to every `AC-N.N` in that story if not already tagged. `brd-traceability` skill honors this tag when computing coverage — Phase 2 ACs don't count against MVP shipment.
 
@@ -387,6 +387,6 @@ All 12 checks green = HANDOVER READINESS 12/12. Anything red → fix before hand
 - **Adding a remote here:** `git remote add origin` is `eo-github`'s exclusive responsibility. Never set it in handover-bridge — that bypasses the plan-mode gate.
 - **Committing when `github_intent=local-only`:** No git repo exists. Creating one without the student asking undermines the "continue locally" choice.
 - **Pushing anything:** handover-bridge makes the first **local** commit only. Network operations belong to `eo-github` and `/7-eo-ship`.
-- **Scaffolding across modes:** An M1 project never gets SaaSfast's dashboard shell. Mode is the contract. Break it only via explicit `/8-eo-dev-repair` after the mode line in `tech-stack-decision.md` is updated.
+- **Scaffolding across modes:** An M1 project never gets SaaSfast's dashboard shell. Mode is the contract. Break it only via explicit `/eo-dev-repair` after the mode line in `tech-stack-decision.md` is updated.
 - **Editing SaaSfast-ar source:** Never. Copy the subset per mode into the project. Upstream stays pristine.
 - **Duplicating the BRD blocks:** Step 4c is idempotent. If the Weekend MVP / v2 markers are already present (student may have hand-authored them in EO-Brain), do not duplicate.

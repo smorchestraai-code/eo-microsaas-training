@@ -7,6 +7,17 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] — 2026-04-27
+
+### Changed
+- **`eo-microsaas-dev` plugin 1.4.2** — architectural cleanup. Numbered chain is now linear 1–8 (`/1-eo-dev-start` → `/8-eo-retro`). `/8-eo-dev-repair` + `/9-eo-debug` demoted to utilities and renamed to `/eo-dev-repair` + `/eo-debug` — they fire out-of-band, not in linear sequence. `/10-eo-retro` renamed to `/8-eo-retro` (genuinely last in time after every ship). Total commands unchanged (15 = 8 numbered + 7 utilities); only re-organized. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** `.claude-plugin/marketplace.json` metadata.version → 1.2.2. Plugin description rewritten around the linear/utility split.
+
+### Migration
+No breaking changes. `claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the rename. Restart Claude Code to load the new autocomplete layout.
+
+---
+
 ## [Unreleased]
 
 ### Planned

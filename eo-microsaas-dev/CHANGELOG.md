@@ -5,6 +5,40 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.2] — 2026-04-27
+
+Architectural cleanup. Numbered chain is now genuinely linear — only commands that fire in sequence carry numeric prefixes. `/8-eo-dev-repair` and `/9-eo-debug` were always lifecycle commands (fire out-of-band, not after `/7-eo-ship`); having them sit in the 1–10 range broke the founder's mental model. Now they live with the other utilities.
+
+### Changed
+
+- **Numbered chain is now 1–8, in order across the weekend.**
+  - `/1-eo-dev-start` (Fri eve)
+  - `/2-eo-dev-plan` → `/3-eo-code` → `/4-eo-review` → `/5-eo-score` (Sat)
+  - `/6-eo-bridge-gaps` (conditional, Sun)
+  - `/7-eo-ship` (Sun)
+  - `/8-eo-retro` (after ship) — **renamed from `/10-eo-retro`**
+- **Demoted to utilities (un-numbered, alphabetical):**
+  - `/eo-dev-repair` — was `/8-eo-dev-repair`. Fires when scaffold is partial/drifted, no linear position.
+  - `/eo-debug` — was `/9-eo-debug`. Fires when something breaks, no linear position.
+- **Utilities now total 7 (alphabetical order in autocomplete):** `/eo-debug`, `/eo-dev-repair`, `/eo-freeze`, `/eo-github`, `/eo-guide`, `/eo-status`, `/eo-unfreeze`.
+- **Total command count unchanged:** 15 (8 numbered + 7 utilities). No commands added or removed; only re-organized.
+- **Plugin description rewritten** around the linear/utility split.
+- **Marketplace bump:** `1.2.1` → `1.2.2`.
+
+### Why
+
+The original v1.4.0 spec called `/8-eo-dev-repair` / `/9-eo-debug` / `/10-eo-retro` "lifecycle, used less" and gave them numeric prefixes as a stable autocomplete sort key. Real-world test surfaced the smell: founders read `/1` → `/10` top-to-bottom and naturally assume "after I run `/7`, I run `/8`." That's wrong — `/8-eo-dev-repair` only fires if the scaffold is broken. The numbering implied a sequence that didn't exist for those two. Fixing it now while training docs are still being authored for v1.4.1 — cheaper than fixing later.
+
+`/8-eo-retro` stays numbered because it genuinely **does** come last in time (after every ship). The `/8` slot is correct for it.
+
+### Migration
+
+- **Existing v1.4.1 projects:** zero code change required. The skill names (`eo-dev-repair`, `eo-debug`, `eo-retro` underneath the numeric command file names) didn't change — only the command file names and how they appear in autocomplete. Users running `claude plugin update eo-microsaas-dev@eo-microsaas-training` get the new layout on next session restart. Existing `_dev-progress.md` rows referencing `/8-eo-dev-repair` or `/10-eo-retro` in `Last command` columns still parse fine — they're just historical strings.
+- **Existing scripts / lessons.md / docs that reference the old names:** these become historical. The new commands are just renames; behavior is identical. No re-bootstrap needed.
+- **CHANGELOG entries from v1.4.0 / v1.4.1 are NOT rewritten** — they document the names as they existed at those releases (historical accuracy).
+
+---
+
 ## [1.4.1] — 2026-04-26
 
 Hotfix on top of 1.4.0. Smoke test surfaced a real gap: the SaaSfast mode picker decided silently from the BRD without asking the founder first. Founder agency comes before the heuristic.

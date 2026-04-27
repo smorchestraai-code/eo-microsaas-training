@@ -107,7 +107,7 @@ Every 90 days, for each active lesson:
 - If `Last triggered` is 90-180 days → move to "Archived" section (still searchable, not loaded at session start)
 - If `Last triggered` is >180 days → delete (assume internalized)
 
-Run via `/10-eo-retro` — the retro command prompts a prune pass.
+Run via `/8-eo-retro` — the retro command prompts a prune pass.
 
 ---
 

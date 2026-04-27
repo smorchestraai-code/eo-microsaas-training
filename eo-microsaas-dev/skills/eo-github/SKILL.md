@@ -357,7 +357,7 @@ This skill refuses to overwrite an existing remote. Options:
   - If that remote is correct: use normal git commands (git push, /7-eo-ship)
   - If it's wrong: manually `git remote set-url origin <correct>` then
     re-run /eo-github to push your current state.
-  - If you need a completely fresh start: see /8-eo-dev-repair.
+  - If you need a completely fresh start: see /eo-dev-repair.
 
 No writes made.
 ```

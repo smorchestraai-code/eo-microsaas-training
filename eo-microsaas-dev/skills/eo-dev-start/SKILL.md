@@ -1,6 +1,6 @@
 ---
 name: eo-dev-start
-description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /8-eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
+description: "First-run bootstrap for a fresh EO MicroSaaS project. Reads EO-Brain phases 0-4 from filesystem, classifies bootstrap state (empty | partial | bootstrapped), enters plan mode with approval gate, and invokes handover-bridge on approval. Never overwrites. Refuses and routes to /eo-dev-repair or /eo-guide when state is not empty. Triggers on: 'eo dev start', 'bootstrap project', 'set up claude code', 'first time', 'ابدأ المشروع'."
 version: "1.3"
 ---
 
@@ -11,7 +11,7 @@ version: "1.3"
 **Pillar:** EO-specific — the single entry point from EO-Brain strategy to Claude Code execution.
 **Purpose:** Replace the 75-line copy-paste bootstrap prompt from `5-CodeHandover/README.md` with one command that reads EO-Brain output, previews exactly what it will create, waits for approval, then executes `handover-bridge` with parameters extracted from phases 0-4.
 
-**Hard contract:** writes nothing without explicit student approval inside plan mode. Refuses on any non-empty state. Never decides repair (that's `/8-eo-dev-repair`'s job).
+**Hard contract:** writes nothing without explicit student approval inside plan mode. Refuses on any non-empty state. Never decides repair (that's `/eo-dev-repair`'s job).
 
 ---
 
@@ -36,8 +36,8 @@ This skill closes all three.
 
 ### State B — `partial`
 - Any of the bootstrap files exists, but not all.
-- **Route:** refuse. Print classified findings. Tell student to run `/8-eo-dev-repair`.
-- This skill never decides repair. `/8-eo-dev-repair` owns that.
+- **Route:** refuse. Print classified findings. Tell student to run `/eo-dev-repair`.
+- This skill never decides repair. `/eo-dev-repair` owns that.
 
 ### State C — `bootstrapped`
 - All of: `CLAUDE.md`, `.claude/lessons.md`, `architecture/brd.md`, `_dev-progress.md`, `.github/workflows/ci.yml`, and at least one `feat:` or `chore(bootstrap):` commit on `main` or `dev`.
@@ -137,7 +137,7 @@ Next:
 
 No writes. Exit.
 
-#### State B (partial) — refuse + route to `/8-eo-dev-repair`
+#### State B (partial) — refuse + route to `/eo-dev-repair`
 
 ```
 ⚠️ Project is partially bootstrapped — /1-eo-dev-start does not handle this.
@@ -149,7 +149,7 @@ Signals missing:
   {list of absent signals}
 
 Next:
-  /8-eo-dev-repair         ← triages missing pieces and decides silent-repair vs refuse
+  /eo-dev-repair         ← triages missing pieces and decides silent-repair vs refuse
 ```
 
 No writes. Exit.
@@ -436,9 +436,9 @@ Before you run it:
 ## Anti-patterns
 
 - **Never write outside plan-mode approval.** If the student says `n`, nothing lands.
-- **Never overwrite.** If a file exists, refuse and route to `/8-eo-dev-repair`. Don't merge silently.
+- **Never overwrite.** If a file exists, refuse and route to `/eo-dev-repair`. Don't merge silently.
 - **Never invent identity.** If EO-Brain is missing a required field, refuse with remediation. Don't ask the student to fill in what should have come from phases 0-4.
-- **Never decide repair.** Partial state → `/8-eo-dev-repair`. Period.
+- **Never decide repair.** Partial state → `/eo-dev-repair`. Period.
 - **Never skip language detection.** `lang=ar` students get Arabic output for the plan preview and evidence table.
 - **Never create a GitHub repo silently.** The 4-option question in Step 9b is mandatory whenever no origin exists. All actual GitHub operations are delegated to `eo-github`.
 - **Never `git init` when `github_intent=local-only`.** Students who choose option 3 stay fully local — no git, no remote. They can still use every other plugin feature.
