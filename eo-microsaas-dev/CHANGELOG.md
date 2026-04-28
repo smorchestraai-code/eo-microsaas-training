@@ -5,6 +5,67 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.3] — 2026-04-28
+
+**Resilient Bootstrap.** `/1-eo-dev-start` cannot fail on legitimate EO-Brain input. v1.4.2 had a hardcoded regex (`^## Story` h2-only) at Step 7 that rejected v2.7.0 architect output (which uses `### Story` h3 headers). That's the wrong shape for a tool that runs against 100s of student BRDs. v1.4.3 replaces the build-and-validate-then-reject pattern with parse-and-normalize-and-surface-gaps.
+
+### Added
+
+- **`eo-brain-ingester` skill** — single executable Python parser (`parse.py`, stdlib-only) that ingests any EO-Brain folder shape and returns a canonical `BrainStructure` JSON. Handles:
+  - Story headers in any depth (h2, h3, h4) or no header at all
+  - Carve tags missing → infers `[@WeekendMVP]` / `[@Phase2]` from story position, surfaces blocking question for founder approval
+  - Loop tags missing → infers `[loop:X]` from title + AC content via weighted keyword scoring (title hits 3x, AC hits 1x, threshold ≥3)
+  - `profile-settings.md` as prose ("IDENTITY\nMamoun Alamouri. Founder of EO Oasis MENA...") instead of key:value or YAML
+  - Project name extraction with prefix-stripping ("Positioning — X" → "X") and multi-source fallback (profile-settings → bootstrap-prompt → companyprofile → BRD → positioning)
+  - `_language-pref.md` missing → auto-detects Arabic vs English from BRD content
+  - Arabic story headers (`قصَّة N`)
+  - Bootstrap prompt as primary identity source when `5-CodeHandover/README.md` is present
+  - 5 fixture EO-Brain folders + smoke test (`parse.py --self-test`) shipped under `skills/eo-brain-ingester/fixtures/`
+- **`brd-normalizer` skill** — companion contract document for the parser's normalization layer. Defers to `parse.py` for execution.
+- **`questions[]` array** in `BrainStructure` — surfaces every blocking gap (missing identity, untagged BRD, MVP loop coverage gap) as a founder-prompt with a sensible default + override hook. Plan-mode preview iterates through these before scaffold runs.
+- **Self-test harness** at `skills/eo-brain-ingester/parse.py --self-test` — runs against all fixtures + asserts behavior. Exit 0 = all pass, exit 2 = any fail.
+
+### Changed
+
+- **`eo-dev-start` Step 7 rewritten.** No more rigid `^## Story` regex. Step 7 now invokes `python3 skills/eo-brain-ingester/parse.py "$EO_BRAIN" --pretty`, refuses **only** on the two genuine-failure cases (EO-Brain missing OR BRD zero ACs), surfaces every other gap as a blocking question.
+- **`eo-dev-start` Step 8 removed.** Identity extraction logic moved into `parse.py`. Cleaner: one place, one parser, one canonical output.
+- **`handover-bridge` Step 4 simplified.** Reads `BrainStructure` JSON + `answers.json` directly. No re-parsing of EO-Brain folder. Single source of truth.
+- **Hard-refuse cases narrowed** from ~6 (in v1.4.2) to **2**: `eo-brain-missing` and `brd-empty`. All other shapes proceed with normalization + founder approval.
+
+### Verified
+
+Smoke-tested against the user's actual EO-Brain at `EO-MicroSaaS-Training/10-EO-Brain-Starter-Kit Final/EO-Brain/` (the BRD that v1.4.2 rejected with "0 ## Story headers"):
+- ✅ Project name correctly extracted as **"EO Oasis MENA"** (was: "Positioning — EO Oasis" or "Untitled Project")
+- ✅ Founder name correctly extracted as **"Mamoun Alamouri"** (was: "alamouri99" git fallback)
+- ✅ Email from git config: `mamoun.alamouri99@gmail.com`
+- ✅ Language: `ar` from `_language-pref.md`
+- ✅ Stack: Next.js + Tailwind + Supabase + Tap + HyperPay + Stripe + Contabo, MENA + RTL flags both true
+- ✅ BRD: 6 stories, 60 ACs, all parsed cleanly
+- ✅ 3 blocking questions surfaced: carve approval (default `y`: stories 1-4 = MVP, 5-6 = Phase2), loop approval (default `y`: keyword-inferred per story), MVP loop gap (missing money/deploy/observability — option A: promote Story 6 which covers `money`)
+- ✅ `refused: false` — bootstrap proceeds with founder review, not skill crash
+
+### Audit findings on `eo-microsaas-os` (upstream architect side)
+
+While shipping the dev plugin's resilient parser, audited the architect + handover skills for similar fragility. **Findings (not fixed in this release — follow-up):**
+
+- `4-eo-tech-architect/references/validate-brd.sh` has **8 hard-refuse exit codes** (5-8 added in v2.7.0 enforce carve + loop coverage). Same brittle build-and-validate pattern that the dev plugin just removed. A founder editing `architecture/brd.md` post-bootstrap (legitimate use case) could trip these refusals.
+- `4-eo-code-handover/SKILL.md` line 121: "Story numbers MUST match brd.md Story numbering exactly." Fragile coupling that breaks if founder renumbers stories.
+
+The dev plugin's v1.4.3 parser **neutralizes** the architect's brittleness — whatever shape the architect produces, the dev plugin accepts. The bug-cascade-stops-here. Architect cleanup is a follow-up `eo-microsaas-os` v2.7.1 release.
+
+### Migration
+
+No breaking changes for active projects. Existing v1.4.2 cached BRDs continue to work. `claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the resilient parser. Restart Claude Code to load.
+
+The 5 fixtures + `--self-test` mode ship with the plugin so future regressions get caught before reaching students.
+
+### Versions
+
+- `eo-microsaas-dev` 1.4.2 → 1.4.3
+- Marketplace `eo-microsaas-training` 1.2.2 → 1.2.3
+
+---
+
 ## [1.4.2] — 2026-04-27
 
 Architectural cleanup. Numbered chain is now genuinely linear — only commands that fire in sequence carry numeric prefixes. `/8-eo-dev-repair` and `/9-eo-debug` were always lifecycle commands (fire out-of-band, not after `/7-eo-ship`); having them sit in the 1–10 range broke the founder's mental model. Now they live with the other utilities.

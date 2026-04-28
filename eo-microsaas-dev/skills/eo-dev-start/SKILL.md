@@ -158,41 +158,100 @@ No writes. Exit.
 
 Continue to Step 7.
 
-### Step 7 — Verify EO-Brain completeness
+### Step 7 — Ingest EO-Brain via the resilient parser (NO regex validation)
 
-Required phase files (refuse if any missing):
+**v1.4.3 — this step CANNOT FAIL on any legitimate EO-Brain input.** Hardcoded regex validation removed. Replaced with a single call to the `eo-brain-ingester` skill, which produces a structured `BrainStructure` JSON with identity, stack, BRD breakdown, and a `questions[]` array surfacing every blocking gap for founder approval.
 
-| Phase | File | Purpose |
-|-------|------|---------|
-| 0 | `EO-Brain/0-Scorecards/` (any `.md`) | At least one scorecard present |
-| 1 | `EO-Brain/1-ProjectBrain/icp.md` | ICP extraction |
-| 1 | `EO-Brain/1-ProjectBrain/brandvoice.md` | Voice for CLAUDE.md |
-| 1 | `EO-Brain/1-ProjectBrain/profile-settings.md` | Founder identity (optional, warn only) |
-| 4 | `EO-Brain/4-Architecture/brd.md` | Spec with AC-N.N tags |
-| 4 | `EO-Brain/4-Architecture/tech-stack-decision.md` | Stack identity |
-| 5 | `EO-Brain/5-CodeHandover/artifacts/` | UX ground truth (warn only if empty — UX hat caps at 8 until present) |
+#### Step 7a — Run the ingester
 
-BRD quality gate:
-- Parse `architecture/brd.md` for `## Story` headers → count must be ≥ 1
-- Parse for `AC-N.N` tags → count must be ≥ 3 per story
+```bash
+PARSE_OUT=$(python3 ${PLUGIN_PATH}/skills/eo-brain-ingester/parse.py "$EO_BRAIN" --pretty 2>&1)
+EXIT=$?
+```
 
-If any **refuse** row missing → print exact list + remediation + exit. No writes.
+#### Step 7b — Hard-refuse only on the two genuine-failure cases
 
-### Step 8 — Extract project identity from EO-Brain
+```bash
+if [[ $EXIT -eq 2 ]]; then
+  reason=$(echo "$PARSE_OUT" | jq -r '.reason')
+  remediation=$(echo "$PARSE_OUT" | jq -r '.remediation')
+  echo "❌ Cannot bootstrap: $reason"
+  echo "   $remediation"
+  exit 2
+fi
+```
 
-Read and parse (no writes yet):
+The ingester refuses on **only two** conditions (see `skills/eo-brain-ingester/SKILL.md`):
+1. EO-Brain directory does not exist
+2. BRD has zero `AC-N.N` tags (genuinely empty)
 
-| Field | Source | Fallback |
-|-------|--------|----------|
-| `project_name` | `1-ProjectBrain/positioning.md` or first `# ` header in any phase-1 file | Ask student |
-| `founder_name` | `1-ProjectBrain/profile-settings.md` key `founder:` | Git config `user.name` |
-| `founder_email` | `1-ProjectBrain/profile-settings.md` key `email:` | Git config `user.email` |
-| `stack` | `4-Architecture/tech-stack-decision.md` key `stack:` or first table row | Fail — require it |
-| `icp_summary` | `1-ProjectBrain/icp.md` first 3 bullet points | Fail — require it |
-| `story_count` | `## Story N` header count in `4-Architecture/brd.md` | Fail — require ≥1 |
-| `ac_count` | `AC-N.N` unique tag count in `4-Architecture/brd.md` | Fail — require ≥3 |
-| `mena_flag` | `1-ProjectBrain/icp.md` contains any of `Cairo Amman Riyadh Dubai UAE KSA MENA Arabic` → `true` | `false` |
-| `deploy_lane` | `4-Architecture/tech-stack-decision.md` key `deploy:` | `vercel` (safe default) |
+Every other shape — drifted headers, missing `[@WeekendMVP]` tags, prose `profile-settings.md`, missing `_language-pref.md`, partial UX artifacts — proceeds with normalization + blocking questions surfaced to the founder.
+
+#### Step 7c — Surface blocking questions before plan-mode preview
+
+The `BrainStructure` carries a `questions[]` array — every gap that needs founder input before scaffold can run. Iterate them; for each:
+
+```bash
+question_count=$(echo "$PARSE_OUT" | jq '.questions | length')
+for i in $(seq 0 $((question_count - 1))); do
+  prompt=$(echo "$PARSE_OUT" | jq -r ".questions[$i].prompt")
+  default=$(echo "$PARSE_OUT" | jq -r ".questions[$i].default_suggestion")
+  source=$(echo "$PARSE_OUT" | jq -r ".questions[$i].default_source")
+
+  printf "\n%s\n" "$prompt"
+  if [[ "$default" != "null" ]]; then
+    printf "  (default: %s — source: %s)\n" "$default" "$source"
+    printf "  Press Enter to accept, or type override: "
+  else
+    printf "  Required (no default): "
+  fi
+  read answer
+
+  # Store answer keyed by question.key for handover-bridge consumption
+  ANSWERS=$(echo "$ANSWERS" | jq --arg k "$(echo "$PARSE_OUT" | jq -r ".questions[$i].key")" \
+                                  --arg v "${answer:-$default}" \
+                                  '. + {($k): $v}')
+done
+```
+
+Common question keys:
+- `founder_name` — when profile-settings.md absent or unparseable
+- `project_name` — when no source has a clean project name
+- `carve_approval` — BRD missing `[@WeekendMVP]` / `[@Phase2]` tags; founder approves proposed carve
+- `loop_approval` — BRD missing `[loop:X]` tags; founder approves keyword-inferred loops per story
+- `mvp_loop_gap` — Weekend MVP slice missing one or more of the 7 loops; founder picks (A) move Phase2 story up, (B) accept gap, (C) return to Cowork
+
+#### Step 7d — Read fields from the BrainStructure for plan-mode preview
+
+```bash
+project_name=$(echo "$PARSE_OUT" | jq -r '.identity.project_name')
+founder_name=$(echo "$PARSE_OUT" | jq -r '.identity.founder_name')
+language=$(echo "$PARSE_OUT" | jq -r '.language.lang')
+stack_frontend=$(echo "$PARSE_OUT" | jq -r '.stack.frontend')
+deploy_lane=$(echo "$PARSE_OUT" | jq -r '.stack.deploy_lane')
+mena_flag=$(echo "$PARSE_OUT" | jq -r '.stack.mena')
+story_count=$(echo "$PARSE_OUT" | jq -r '.brd.story_count')
+ac_count=$(echo "$PARSE_OUT" | jq -r '.brd.total_acs')
+warnings=$(echo "$PARSE_OUT" | jq -r '.warnings[]')
+normalization_plan=$(echo "$PARSE_OUT" | jq -r '.brd.normalization_plan[]')
+```
+
+These feed Step 9's plan-mode preview. Founder approves the whole bootstrap (identity + carve + loops + normalization plan) in one gate.
+
+### Step 8 — (REMOVED in v1.4.3 — identity extraction now lives in the ingester at Step 7a)
+
+The Step 8 identity-extraction logic that lived here in v1.4.2 has moved into `skills/eo-brain-ingester/parse.py`. That parser handles:
+- prose `profile-settings.md` ("IDENTITY\nMamoun Alamouri. Founder of EO Oasis MENA...")
+- key:value `profile-settings.md`
+- YAML frontmatter `profile-settings.md`
+- BRD `**Product:**` line as project name source
+- `companyprofile.md` h1 as project name source
+- `positioning.md` h1 with prefix-strip (e.g. "Positioning — X" → "X")
+- bootstrap-prompt.md `Name:` / `Founder:` / `ICP:` fields
+- ICP from `icp.md` bullet list with markdown stripped
+- voice rules from `brandvoice.md`
+- git config `user.name` / `user.email` as fallback for founder identity
+- blocking question generation when no source resolves a critical field
 
 ### Step 8a — Ask the founder: SaaSfast — yes or no?
 
