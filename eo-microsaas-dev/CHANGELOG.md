@@ -5,6 +5,63 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.4] — 2026-04-28
+
+Three real fuckups in v1.4.3 named, owned, fixed.
+
+### Fixed
+
+- **(#1) `/1-eo-dev-start` now self-scores the input.** v1.4.3 parsed cleanly but never showed a score. v1.4.4 plan-mode preview shows a 5-hat composite (Identity / Stack / BRD / UX / Compliance, 0-10 each, 0-100 composite) with per-hat bars, auto-bridge plan, and founder-action list. Goal stated explicitly: aim for 10/10 against what the input allows. Auto-bridges (carve tag inference, loop tag inference, SCOPE block injection) apply automatically. Remaining gaps surface as concrete founder actions with severity flags. Never blocks — bootstrap proceeds with what's shippable.
+- **(#2) `handover-bridge` Step 10 now auto-executes the post-scaffold dev-environment work.** v1.4.3 ended with a checklist telling the founder to `cd`, `npm install`, edit `.env.local`, run `npm run dev`. That's broken for non-technical founders — defeats the entire purpose of the plugin. v1.4.4 actually runs all of it: `npm install` after scaffold; interactive `.env.local` build (prompts founder for each secret, uses MCPs where available — Supabase MCP fills `NEXT_PUBLIC_SUPABASE_*` automatically, etc.); `npm run db:migrate` if applicable; `npm run dev` in background; HTTP 200 verification on `localhost`; `open` the URL. Founder sees a running dev server URL + the next concrete command (`/2-eo-dev-plan story-1`) — not a TODO list.
+- **(#3) Payment default is now Stripe-first for Stripe-supported countries.** v1.4.3 defaulted to Tap for any MENA flag, even for UAE founders where Stripe is supported, ships natively in SaaSfast, and handles subscriptions better than Tap. v1.4.4 extracts founder country from `profile-settings.md` (looks for "Based in Dubai" / "located in Riyadh" / etc.), then picks payment provider:
+  - **Stripe-supported countries** (UAE, KSA, Bahrain, Kuwait + global) → **Stripe primary** (SaaSfast-native, best for subscriptions)
+  - **Egypt** → PayTabs default
+  - **Jordan / Qatar / Oman** → Tap default (Stripe not supported there)
+  - **BRD names a single provider** → use it (BRD always wins over default)
+  - **BRD names multiple providers** → primary = Stripe if Stripe-supported, fallbacks = the rest
+
+### Added
+
+- `parse_founder_country()` in the ingester — extracts ISO country code (`AE`/`SA`/`BH`/`KW`/`QA`/`OM`/`EG`/`JO`) from `profile-settings.md` + `founderprofile.md`. Pattern matching includes Arabic markers (الإمارات, السعودية, etc.) and English ones, with "Based in {City}" / "Located in {City}" tiebreakers heavily weighted.
+- `pick_payment_default()` in the ingester — encapsulates the country-aware payment rule. Returns `(primary, fallbacks, rationale)` tuple. Rationale string is shown to the founder in plan-mode preview so the choice is auditable.
+- `score_inputs()` in the ingester — 5-hat scoring with per-hat 0-10, composite 0-100, gap list with `auto_bridgeable` flag, and `verdict` banner (ship-grade / bridge-grade / below-gate / serious-gaps).
+- `STRIPE_SUPPORTED_COUNTRIES` constant + `NON_STRIPE_FALLBACK` map at top of `parse.py` — single-source-of-truth for the country routing.
+
+### Verified end-to-end against the real `10-EO-Brain-Starter-Kit Final/EO-Brain/`
+
+```
+Project: EO Oasis MENA  ·  Founder: Mamoun Alamouri  ·  Country: AE  ·  Language: ar
+
+PAYMENT (v1.4.4 fix):
+  Primary:    Stripe                          ← was Tap in v1.4.3
+  Fallbacks:  ['Tap', 'HyperPay']
+  Rationale:  founder in AE (Stripe-supported); Stripe primary (SaaSfast-native, best subscriptions)
+
+INPUT QUALITY SCORE:
+  COMPOSITE:  88/100
+  identity   ██████████ 10/10
+  stack      ██████████ 10/10
+  brd        ████░░░░░░ 4/10  ← MVP missing 3 loops, surfaced as 1 founder action
+  ux         ██████████ 10/10
+  compliance ██████████ 10/10
+
+AUTO-BRIDGES (3 — applied automatically): carve tag inference, loop tag inference, SCOPE block injection
+FOUNDER ACTIONS (1): MVP missing [deploy, money, observability] — promote Story 6 (covers money), or accept partial MVP
+```
+
+Self-score against real EO-Brain: **10/10 gates green**.
+
+### Versions
+
+- `eo-microsaas-dev` 1.4.3 → 1.4.4
+- Marketplace `eo-microsaas-training` 1.2.3 → 1.2.4
+
+### Migration
+
+No breaking changes. `claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the fixes. Restart Claude Code.
+
+---
+
 ## [1.4.3] — 2026-04-28
 
 **Resilient Bootstrap.** `/1-eo-dev-start` cannot fail on legitimate EO-Brain input. v1.4.2 had a hardcoded regex (`^## Story` h2-only) at Step 7 that rejected v2.7.0 architect output (which uses `### Story` h3 headers). That's the wrong shape for a tool that runs against 100s of student BRDs. v1.4.3 replaces the build-and-validate-then-reject pattern with parse-and-normalize-and-surface-gaps.

@@ -345,18 +345,150 @@ fi
 
 **Never push.** If the student chose `create` / `point-existing` / `guided`, `eo-github` will be invoked next (by `/1-eo-dev-start` Step 10b) and it owns the push. If the student chose `already-wired`, `/7-eo-ship` handles the first release push.
 
-### Step 10 — Print next-step banner
-```
-✅ Handoff complete. You're Claude Code ready.
+### Step 10 — Auto-execute the dev environment (the v1.4.4 fix)
 
-Next steps:
-  1. cd {ProjectName}
-  2. Open in Claude Code: claude
-  3. Run: /2-eo-dev-plan
-  4. Start sprint 1 from architecture/technical-roadmap.md
+**Non-technical founders cannot shell.** The plugin must DO these steps, not list them. The skill is responsible for:
 
-Your first score gate: 90 composite or no ship.
+1. `npm install` — run in the project root after scaffold completes
+2. Generate `.env.local` interactively — read `.env.example` line-by-line; for each entry, ask the founder for the value (or pull from MCPs if connected — Supabase MCP for `NEXT_PUBLIC_SUPABASE_*`, Stripe MCP for `STRIPE_*`, etc.); never invent placeholders that look like real keys
+3. Create the `docs/env-contract.md` companion (which secret comes from where) so founder can refer back
+4. `npm run db:migrate` if Supabase + migrations exist (idempotent)
+5. `npm run dev` — start in background, capture output, confirm port-bound
+6. Verify HTTP 200 on `http://localhost:3000` (or whichever port came up)
+7. `open http://localhost:3000` (macOS) / `xdg-open` (Linux) / `start` (Windows) — open the live page
+8. Print the SUCCESS banner with the running URL + the next concrete command
+
+#### Step 10a — `npm install`
+
+```bash
+cd "$ROOT" || exit 1
+echo "📦 Installing dependencies..."
+npm install --silent 2>&1 | tail -5
+if [[ $? -ne 0 ]]; then
+  echo "❌ npm install failed. Output above. Bootstrap aborts here — fix the issue, re-run /1-eo-dev-start."
+  exit 1
+fi
+echo "✅ Dependencies installed ($(npm ls --depth=0 2>/dev/null | grep -c '─') top-level packages)."
 ```
+
+#### Step 10b — Build `.env.local` interactively
+
+The skill is the agent. Do NOT print "create .env.local from .env.example yourself" — actively prompt the founder for each secret value. For values that can be fetched via MCP (Supabase project URL/anon key, GitHub token, etc.), use the MCP. For values the founder must provide (Tap secret, Stripe secret, Resend API key, etc.), prompt with context.
+
+```bash
+# Read .env.example, build .env.local interactively
+> "$ROOT/.env.local"
+chmod 600 "$ROOT/.env.local"
+
+while IFS= read -r line; do
+  # Skip blanks + comments
+  [[ -z "$line" || "$line" =~ ^# ]] && { echo "$line" >> "$ROOT/.env.local"; continue; }
+  # Parse VAR=placeholder
+  if [[ "$line" =~ ^([A-Z_][A-Z0-9_]*)=(.*) ]]; then
+    var="${BASH_REMATCH[1]}"
+    placeholder="${BASH_REMATCH[2]}"
+
+    # Try MCP-resolved values first
+    case "$var" in
+      NEXT_PUBLIC_SUPABASE_URL|SUPABASE_URL)
+        # Try Supabase MCP get_project_url
+        v=$(mcp_call supabase get_project_url 2>/dev/null) ;;
+      NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_ANON_KEY)
+        v=$(mcp_call supabase get_publishable_keys --type anon 2>/dev/null) ;;
+      *)
+        v="" ;;
+    esac
+
+    if [[ -n "$v" ]]; then
+      echo "$var=$v" >> "$ROOT/.env.local"
+      echo "  ✅ $var (auto-filled from MCP)"
+    else
+      printf "  🔑 %-40s : " "$var"
+      read -r value
+      if [[ -z "$value" ]]; then
+        echo "$var=$placeholder  # TODO: founder must fill" >> "$ROOT/.env.local"
+        echo "     (left as placeholder — founder will fill before /7-eo-ship)"
+      else
+        echo "$var=$value" >> "$ROOT/.env.local"
+      fi
+    fi
+  fi
+done < "$ROOT/.env.example"
+
+echo "✅ .env.local written ($(grep -c '^[A-Z_]' "$ROOT/.env.local") variables, mode 600)"
+```
+
+For Stripe-primary projects, the secrets to prompt for are: `STRIPE_SECRET_KEY` (sk_test_...), `STRIPE_WEBHOOK_SECRET` (whsec_...), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (pk_test_...). Tell the founder to paste from `dashboard.stripe.com → Developers → API keys`.
+
+#### Step 10c — DB migrate (Supabase only, idempotent)
+
+```bash
+if grep -qi "supabase" "$ROOT/package.json" && [[ -d "$ROOT/supabase/migrations" ]]; then
+  echo "🗄  Running Supabase migrations..."
+  npm run db:migrate --silent 2>&1 | tail -5 || \
+    npx supabase db push --include-all 2>&1 | tail -5
+fi
+```
+
+#### Step 10d — Start dev server in background + verify
+
+```bash
+echo "🚀 Starting dev server..."
+nohup npm run dev > "$ROOT/.bootstrap-dev.log" 2>&1 &
+DEV_PID=$!
+echo "$DEV_PID" > "$ROOT/.bootstrap-dev.pid"
+
+# Poll up to 30s for the port to bind
+for i in $(seq 1 30); do
+  PORT=$(grep -oE "localhost:[0-9]+" "$ROOT/.bootstrap-dev.log" | head -1 | cut -d: -f2)
+  if [[ -n "$PORT" ]]; then
+    if curl -sf "http://localhost:$PORT" -o /dev/null; then
+      echo "✅ Dev server live: http://localhost:$PORT (pid $DEV_PID)"
+      DEV_URL="http://localhost:$PORT"
+      break
+    fi
+  fi
+  sleep 1
+done
+
+if [[ -z "$DEV_URL" ]]; then
+  echo "⚠  Dev server didn't bind in 30s. Tail of .bootstrap-dev.log:"
+  tail -20 "$ROOT/.bootstrap-dev.log"
+  echo "   (continuing — founder can run npm run dev manually)"
+fi
+```
+
+#### Step 10e — Open browser + print SUCCESS banner
+
+```bash
+case "$(uname -s)" in
+  Darwin) open "$DEV_URL" 2>/dev/null ;;
+  Linux)  xdg-open "$DEV_URL" 2>/dev/null ;;
+  *) ;;
+esac
+
+cat <<EOF
+
+═══════════════════════════════════════════════════════════════════
+  ✅ Bootstrap complete. {project_name} is live.
+═══════════════════════════════════════════════════════════════════
+
+  Dev server:    $DEV_URL  (running in background, pid $DEV_PID)
+  Project root:  $ROOT
+  GitHub:        $github_status
+  Score:         ${score_composite}/100  (${score_verdict})
+
+  Next:  /2-eo-dev-plan story-1
+         (I will plan Weekend MVP Story 1, then /3-eo-code → /4-eo-review
+          → /5-eo-score → /7-eo-ship. Story 1 ships LIVE on Saturday.)
+
+  To stop the dev server later:  kill \$(cat $ROOT/.bootstrap-dev.pid)
+EOF
+```
+
+**Anti-pattern (do NOT do this):** print a numbered list telling the founder to `cd`, `npm install`, edit `.env.local` manually, run `npm run dev`. That defeats the entire purpose of the plugin. The agent has the shell — use it.
+
+If any step fails (`npm install` errors, missing env vars the founder can't provide, port conflicts), surface the specific error + concrete remediation, but **do not block the bootstrap**. The other writes already landed. Founder can resolve the dev-server issue separately via `/eo-dev-repair` or running `npm run dev` manually.
 
 ---
 

@@ -7,6 +7,23 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.4] — 2026-04-28
+
+### Fixed
+- **`eo-microsaas-dev` plugin 1.4.4** — three real fuckups in v1.4.3 named + fixed:
+  - **(#1) `/1-eo-dev-start` now self-scores the input** in plan-mode preview. Multi-hat (Identity / Stack / BRD / UX / Compliance), 0-100 composite, auto-bridge plan, founder-action list with severity. Aims for 10/10 against what the input allows.
+  - **(#2) `handover-bridge` auto-executes the post-scaffold dev environment.** No more "next steps for founder to run." Plugin runs `npm install` + interactive `.env.local` build + `npm run dev` + HTTP 200 verify + opens the URL. Non-technical founders get a running dev server, not a checklist.
+  - **(#3) Payment default is Stripe-first for Stripe-supported countries** (UAE, KSA, Bahrain, Kuwait). Was Tap for any MENA flag in v1.4.3 — wrong for UAE/KSA where Stripe is native to SaaSfast and better for subscriptions. New rule: extract founder country from `profile-settings.md`, route accordingly. BRD-explicit always wins.
+- **Marketplace bump:** 1.2.3 → 1.2.4.
+
+### Verified
+- Real EO-Brain at `10-EO-Brain-Starter-Kit Final/EO-Brain/`: now extracts `AE` country, sets Stripe as primary (was Tap), shows composite 88/100 with 3 auto-bridges + 1 founder action surfaced. 10/10 self-score gates green.
+
+### Migration
+`claude plugin update eo-microsaas-dev@eo-microsaas-training`. Restart Claude Code.
+
+---
+
 ## [1.2.3] — 2026-04-28
 
 ### Changed
