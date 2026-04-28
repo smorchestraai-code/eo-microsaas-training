@@ -101,6 +101,35 @@ MENA_KEYWORDS_AR = ["العربية", "خليجي", "MENA", "السعودية", 
 MENA_KEYWORDS_EN = ["MENA", "Saudi", "Arabia", "UAE", "Egypt", "Jordan",
                     "Kuwait", "Qatar", "Bahrain", "Oman", "Arabic", "Gulf"]
 
+# Country detection: maps explicit country mentions in profile-settings.md
+# to ISO codes. Used to pick the right payment provider default.
+COUNTRY_MARKERS = [
+    # ISO, English markers, Arabic markers
+    ("AE", ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi", "Sharjah"], ["الإمارات", "دبي", "أبوظبي"]),
+    ("SA", ["Saudi Arabia", "KSA", "Riyadh", "Jeddah", "Saudi"], ["السعودية", "الرياض", "جدة"]),
+    ("BH", ["Bahrain", "Manama"], ["البحرين", "المنامة"]),
+    ("KW", ["Kuwait"], ["الكويت"]),
+    ("QA", ["Qatar", "Doha"], ["قطر", "الدوحة"]),
+    ("OM", ["Oman", "Muscat"], ["عُمان", "عمان", "مسقط"]),
+    ("EG", ["Egypt", "Cairo", "Alexandria"], ["مصر", "القاهرة"]),
+    ("JO", ["Jordan", "Amman"], ["الأردن", "عمّان"]),
+]
+
+# Stripe support map (verified 2024-Q4).
+# When founder_country is supported and BRD doesn't explicitly name another
+# provider as primary, default to Stripe (it's part of SaaSfast natively,
+# handles subscriptions natively, no MADA needed for these markets).
+STRIPE_SUPPORTED_COUNTRIES = {"AE", "SA", "BH", "KW", "US", "GB", "DE", "FR", "CA", "AU", "IE", "NL", "SE", "DK", "FI", "NO", "ES", "IT"}
+
+# Country → preferred-fallback-when-Stripe-unavailable map
+# Egypt: PayTabs/Fawry. Jordan/Qatar/Oman: Tap.
+NON_STRIPE_FALLBACK = {
+    "EG": "PayTabs",
+    "JO": "Tap",
+    "QA": "Tap",
+    "OM": "Tap",
+}
+
 # Banned buzzwords (used in voice extraction)
 BANNED_BUZZWORDS = [
     "leverage", "synergy", "ecosystem", "holistic", "digital transformation",
@@ -391,64 +420,154 @@ def parse_identity(eo_brain, warnings, questions):
     return identity
 
 
-def parse_stack(eo_brain, warnings):
-    """Extract tech stack + deploy lane + payment provider. Default to MENA-safe."""
+def parse_founder_country(eo_brain, warnings):
+    """Extract founder country (ISO code) from profile-settings.md / founderprofile.md.
+    Pattern: 'Based in Dubai' / 'located in Riyadh' / 'from Jordan' / Arabic equivalents.
+    Returns ISO code (AE/SA/BH/KW/QA/OM/EG/JO) or None."""
+    paths = []
+    p1 = glob_first(eo_brain, "1-ProjectBrain/profile-settings.md",
+                     "1-ProjectBrain/**/profile-settings.md")
+    if p1:
+        paths.append(p1)
+    p2 = glob_first(eo_brain, "1-ProjectBrain/Project/founderprofile.md",
+                     "1-ProjectBrain/**/founderprofile.md")
+    if p2:
+        paths.append(p2)
+    if not paths:
+        return None
+    txt = "\n".join(read_text(p) or "" for p in paths)
+
+    # Score by marker hits across ALL country markers; highest score wins
+    scores = {}
+    for iso, en_markers, ar_markers in COUNTRY_MARKERS:
+        score = 0
+        for kw in en_markers:
+            score += len(re.findall(rf"\b{re.escape(kw)}\b", txt))
+        for kw in ar_markers:
+            score += txt.count(kw)
+        if score > 0:
+            scores[iso] = score
+    if not scores:
+        return None
+    # Pick highest. Tiebreak: prefer current-residence markers ("Based in" / "located in")
+    # by giving them double weight.
+    for marker_pattern in [r"[Bb]ased in\s+(\w+)", r"[Ll]ocated in\s+(\w+)",
+                           r"[Ll]iving in\s+(\w+)", r"[Hh]eadquartered in\s+(\w+)"]:
+        m = re.search(marker_pattern, txt)
+        if m:
+            location_word = m.group(1)
+            for iso, en_markers, _ in COUNTRY_MARKERS:
+                if any(location_word.lower() == kw.lower() or location_word in kw for kw in en_markers):
+                    scores[iso] = scores.get(iso, 0) + 10  # heavy tiebreak
+    return max(scores, key=scores.get)
+
+
+def pick_payment_default(country_iso, brd_text, warnings):
+    """Country-aware payment provider default.
+
+    Rule (v1.4.4):
+    1. BRD explicitly names ONE provider → use it
+    2. BRD names MULTIPLE providers → primary = Stripe IF Stripe-supported
+       in founder country, else first non-Stripe in BRD order
+    3. BRD silent + Stripe-supported country → Stripe (SaaSfast-native, best
+       for subscriptions)
+    4. BRD silent + non-Stripe country → fallback per NON_STRIPE_FALLBACK
+    5. BRD silent + country unknown → Stripe (safest global default)
+
+    Returns (primary_provider, fallback_providers, rationale).
+    """
+    brd_text = brd_text or ""
+    # All providers mentioned in BRD
+    in_brd = []
+    for prov in ["Stripe", "Tap", "HyperPay", "Moyasar", "PayTabs", "Fawry"]:
+        if re.search(rf"\b{prov}\b", brd_text):
+            in_brd.append(prov)
+
+    # Rule 1: single provider in BRD
+    if len(in_brd) == 1:
+        return (in_brd[0], [], f"BRD explicitly names {in_brd[0]}")
+
+    # Rule 2: multiple in BRD
+    if len(in_brd) > 1:
+        if country_iso in STRIPE_SUPPORTED_COUNTRIES and "Stripe" in in_brd:
+            others = [p for p in in_brd if p != "Stripe"]
+            return ("Stripe", others,
+                    f"BRD names {in_brd}; founder in {country_iso} (Stripe-supported); "
+                    f"Stripe primary (SaaSfast-native, best subscriptions); "
+                    f"{', '.join(others)} configured as fallbacks")
+        # Country isn't Stripe-supported, or BRD doesn't mention Stripe
+        return (in_brd[0], in_brd[1:],
+                f"BRD names {in_brd}; primary={in_brd[0]} (BRD order); "
+                f"{', '.join(in_brd[1:])} configured as fallbacks")
+
+    # Rule 3-5: BRD silent
+    if country_iso in STRIPE_SUPPORTED_COUNTRIES:
+        return ("Stripe", [],
+                f"founder in {country_iso} (Stripe-supported); "
+                f"Stripe is SaaSfast-native default for subscriptions")
+    fallback = NON_STRIPE_FALLBACK.get(country_iso, "Tap")
+    if country_iso:
+        return (fallback, [],
+                f"founder in {country_iso} (Stripe not supported there); "
+                f"{fallback} default for that market")
+    warnings.append("founder country unknown — defaulted payment to Stripe (safest global)")
+    return ("Stripe", [], "country unknown; Stripe global default")
+
+
+def parse_stack(eo_brain, warnings, founder_country):
+    """Extract tech stack + deploy lane + payment provider.
+    v1.4.4: payment default is country-aware, NOT hardcoded Tap-for-MENA."""
     stack = {
         "frontend": "Next.js 14 + TypeScript + Tailwind",
         "backend": "Next.js API Routes",
         "db": "Postgres (Supabase managed)",
         "auth": "Supabase Auth",
-        "payments": ["Tap"],
+        "payment_primary": None,
+        "payment_fallbacks": [],
+        "payment_rationale": None,
         "deploy_lane": "Contabo VPS",
         "mena": False,
         "rtl": False,
         "source": "default",
     }
     p = glob_first(eo_brain, "4-Architecture/tech-stack-decision.md")
+    txt = ""
     if not p:
         warnings.append("tech-stack-decision.md missing — using MENA-safe defaults")
-        return stack
-    txt = read_text(p) or ""
-    stack["source"] = p
+    else:
+        txt = read_text(p) or ""
+        stack["source"] = p
 
     # MENA flag detection
     if any(kw in txt for kw in MENA_KEYWORDS_EN + MENA_KEYWORDS_AR):
         stack["mena"] = True
         stack["rtl"] = True
+    elif founder_country in {"AE", "SA", "BH", "KW", "QA", "OM", "EG", "JO"}:
+        stack["mena"] = True
+        stack["rtl"] = True
 
-    # Frontend: try to extract structured "Frontend:" or "frontend = " line
-    m = re.search(r"^[\-\*\s]*(?:Frontend|frontend)\s*[:=]\s*(.+?)\s*$", txt, re.M)
-    if m:
-        stack["frontend"] = m.group(1).strip()
-
-    # Backend
-    m = re.search(r"^[\-\*\s]*(?:Backend|backend)\s*[:=]\s*(.+?)\s*$", txt, re.M)
-    if m:
-        stack["backend"] = m.group(1).strip()
-
-    # DB
-    m = re.search(r"^[\-\*\s]*(?:Database|database|DB|db)\s*[:=]\s*(.+?)\s*$", txt, re.M)
-    if m:
-        stack["db"] = m.group(1).strip()
-
-    # Auth
-    m = re.search(r"^[\-\*\s]*(?:Auth|auth)\s*[:=]\s*(.+?)\s*$", txt, re.M)
-    if m:
-        stack["auth"] = m.group(1).strip()
-
-    # Payments — accept multiple providers
-    payments = []
-    for prov in ["Tap", "HyperPay", "Moyasar", "PayTabs", "Stripe"]:
-        if re.search(rf"\b{prov}\b", txt):
-            payments.append(prov)
-    if payments:
-        stack["payments"] = payments
+    # Stack fields (Frontend / Backend / DB / Auth)
+    for key, slot in [("Frontend", "frontend"), ("Backend", "backend"),
+                       ("Database", "db"), ("DB", "db"), ("Auth", "auth")]:
+        m = re.search(rf"^[\-\*\s]*(?:{key}|{key.lower()})\s*[:=]\s*(.+?)\s*$", txt, re.M)
+        if m:
+            stack[slot] = m.group(1).strip()
 
     # Deploy lane
     for lane in ["Contabo", "Hetzner", "Railway", "Vercel", "Netlify", "AWS", "Oracle", "Azure"]:
         if re.search(rf"\b{lane}\b", txt):
             stack["deploy_lane"] = lane
             break
+
+    # Payment: country-aware (the v1.4.4 fix)
+    # Read BOTH tech-stack and BRD for explicit provider mentions
+    brd_text = read_text(os.path.join(eo_brain, "4-Architecture", "brd.md")) or ""
+    primary, fallbacks, rationale = pick_payment_default(
+        founder_country, txt + "\n" + brd_text, warnings)
+    stack["payment_primary"] = primary
+    stack["payment_fallbacks"] = fallbacks
+    stack["payment_rationale"] = rationale
+
     return stack
 
 
@@ -462,6 +581,174 @@ def parse_ux_artifacts(eo_brain, warnings):
     if not candidates:
         warnings.append("No UX artifacts found in 5-CodeHandover/artifacts/ — UX hat will cap at 8 until populated")
     return {"paths": candidates, "count": len(candidates)}
+
+
+# ----------------------------------------------------------------------------
+# MULTI-HAT INPUT SCORING (the v1.4.4 fix)
+# ----------------------------------------------------------------------------
+
+def score_inputs(brain):
+    """5-hat score of the EO-Brain input quality. Each hat 0-10. Composite = sum × 2 (0-100).
+    Founder sees this in the plan-mode preview. The plugin auto-bridges gaps where
+    safe (e.g. infer carve tags) and surfaces remaining gaps as actionable founder
+    items. Goal is 10/10 against what the input allows — never block, always surface."""
+    hats = {
+        "identity": 0,
+        "stack": 0,
+        "brd": 0,
+        "ux": 0,
+        "compliance": 0,
+    }
+    gaps = []  # list of {hat, gap, fix, severity, auto_bridgeable}
+
+    # ─── Identity hat (0-10) ─────────────────────────────────────────────────
+    s = 0
+    if brain["identity"]["project_name"]:
+        s += 2
+    else:
+        gaps.append({"hat": "identity", "gap": "project_name unresolved", "fix": "blocking question already in questions[]", "severity": "high", "auto_bridgeable": False})
+    if brain["identity"]["founder_name"]:
+        s += 2
+    else:
+        gaps.append({"hat": "identity", "gap": "founder_name unresolved", "fix": "blocking question already in questions[]", "severity": "high", "auto_bridgeable": False})
+    if brain["identity"]["founder_email"]:
+        s += 1
+    else:
+        gaps.append({"hat": "identity", "gap": "founder_email missing", "fix": "git config user.email or ask founder", "severity": "low", "auto_bridgeable": True})
+    if brain["identity"]["icp_summary"]:
+        s += 2
+    else:
+        gaps.append({"hat": "identity", "gap": "icp_summary empty", "fix": "run 1-eo-template-factory in Cowork to fill icp.md", "severity": "medium", "auto_bridgeable": False})
+    if brain["identity"].get("founder_country"):
+        s += 2
+    else:
+        gaps.append({"hat": "identity", "gap": "founder_country unresolved (affects payment default)", "fix": "add 'Based in {City}' to profile-settings.md, or accept Stripe global default", "severity": "low", "auto_bridgeable": True})
+    if brain["identity"]["voice_notes"]:
+        s += 1
+    else:
+        gaps.append({"hat": "identity", "gap": "no voice rules extracted from brandvoice.md", "fix": "fill brandvoice.md or accept global voice rules", "severity": "low", "auto_bridgeable": True})
+    hats["identity"] = min(s, 10)
+
+    # ─── Stack hat (0-10) ────────────────────────────────────────────────────
+    s = 0
+    st = brain["stack"]
+    if st["frontend"] != "Next.js 14 + TypeScript + Tailwind" or "tech-stack-decision.md" in (st["source"] or ""):
+        s += 2  # explicitly named or kept default
+    else:
+        gaps.append({"hat": "stack", "gap": "frontend = generic default (no tech-stack-decision.md detected)", "fix": "fill 4-Architecture/tech-stack-decision.md or accept default", "severity": "medium", "auto_bridgeable": False})
+    if "tech-stack-decision.md" in (st["source"] or ""):
+        s += 2
+    else:
+        gaps.append({"hat": "stack", "gap": "tech-stack-decision.md missing entirely", "fix": "run 4-eo-tech-architect in Cowork", "severity": "high", "auto_bridgeable": False})
+    if st["payment_primary"]:
+        s += 2
+    if st["mena"] or st["payment_primary"] in ("Tap", "HyperPay", "Moyasar", "PayTabs", "Stripe"):
+        s += 2
+    if st["deploy_lane"] != "default":
+        s += 2
+    hats["stack"] = min(s, 10)
+
+    # ─── BRD hat (0-10) ──────────────────────────────────────────────────────
+    s = 0
+    b = brain["brd"]
+    if b["story_count"] >= 4:
+        s += 2
+    elif b["story_count"] >= 1:
+        s += 1
+        gaps.append({"hat": "brd", "gap": f"only {b['story_count']} story (Weekend MVP needs ≥4)", "fix": "expand BRD in Cowork via 4-eo-tech-architect", "severity": "high", "auto_bridgeable": False})
+    if b["total_acs"] >= b["story_count"] * 3:
+        s += 2
+    if b["scope_shape"] == "canonical":
+        s += 1
+    elif b["scope_shape"] == "binary":
+        s += 0  # will be normalized
+        gaps.append({"hat": "brd", "gap": "SCOPE block is binary (no v2 Roadmap subsection)", "fix": "normalizer will inject canonical 3-block SCOPE — auto", "severity": "low", "auto_bridgeable": True})
+    else:
+        gaps.append({"hat": "brd", "gap": "no SCOPE block at all", "fix": "normalizer will inject canonical 3-block SCOPE — auto", "severity": "medium", "auto_bridgeable": True})
+    if b["carve_state"] == "canonical":
+        s += 1
+    else:
+        gaps.append({"hat": "brd", "gap": f"carve_state={b['carve_state']} (no [@WeekendMVP]/[@Phase2] tags)", "fix": f"normalizer will tag stories {b['proposed_carve']['weekend_mvp']}=MVP, {b['proposed_carve']['phase_2']}=Phase2 — founder approves", "severity": "medium", "auto_bridgeable": True})
+    if b["loop_state"] == "canonical":
+        s += 1
+    else:
+        gaps.append({"hat": "brd", "gap": f"loop_state={b['loop_state']} (no [loop:X] tags)", "fix": "normalizer infers loops from content via keyword scoring — founder approves", "severity": "medium", "auto_bridgeable": True})
+    if b["loop_coverage"]["complete"]:
+        s += 3
+    else:
+        missing = b["loop_coverage"]["missing"]
+        gaps.append({
+            "hat": "brd",
+            "gap": f"Weekend MVP slice missing loops: {missing}",
+            "fix": f"promote a Phase2 story up (mvp_loop_gap question in questions[]), or accept partial MVP",
+            "severity": "high",
+            "auto_bridgeable": False,
+        })
+    hats["brd"] = min(s, 10)
+
+    # ─── UX hat (0-10) ───────────────────────────────────────────────────────
+    s = 0
+    n = brain["ux_artifacts"]["count"]
+    if n >= 3:
+        s += 6
+    elif n >= 1:
+        s += 4
+        gaps.append({"hat": "ux", "gap": f"only {n} UX artifact(s) — founder may want product-demo + onboarding-flow + admin-dashboard for full coverage", "fix": "run 4-eo-code-handover Phase 4 in Cowork to generate the missing artifacts", "severity": "low", "auto_bridgeable": False})
+    else:
+        gaps.append({"hat": "ux", "gap": "no UX artifacts found — UX hat caps at 8 until populated", "fix": "run 4-eo-code-handover in Cowork", "severity": "medium", "auto_bridgeable": False})
+    if brain["bootstrap_prompt"]:
+        s += 2
+    else:
+        gaps.append({"hat": "ux", "gap": "no 5-CodeHandover/README.md (bootstrap prompt source)", "fix": "run 4-eo-code-handover in Cowork", "severity": "low", "auto_bridgeable": False})
+    if brain["language"]["lang"] == "ar" and brain["stack"]["rtl"]:
+        s += 2  # MENA project with RTL flag = correctly identified
+    elif brain["language"]["lang"] == "en":
+        s += 2  # English-only also fine
+    hats["ux"] = min(s, 10)
+
+    # ─── Compliance hat (0-10) ───────────────────────────────────────────────
+    s = 0
+    if brain["stack"]["mena"]:
+        s += 3  # MENA flag set → arabic-rtl-checker + mena-mobile-check will run
+    if brain["stack"]["rtl"]:
+        s += 2
+    if any("Supabase" in x for x in [brain["stack"]["db"], brain["stack"]["auth"]]):
+        s += 2  # RLS available
+    else:
+        gaps.append({"hat": "compliance", "gap": "no Supabase in stack → RLS not auto-enforced", "fix": "if multi-tenant, switch to Supabase or add manual RLS layer", "severity": "medium", "auto_bridgeable": False})
+    if brain["stack"]["payment_primary"]:
+        s += 2  # webhook-signature-verification scaffold ships with the lib
+    if brain["stack"]["deploy_lane"] not in ("Vercel",):
+        s += 1  # not Vercel (per Mamoun's global rule)
+    else:
+        gaps.append({"hat": "compliance", "gap": "deploy lane = Vercel (banned per global rules — owned-infra only)", "fix": "switch to Contabo / Hetzner / Railway in tech-stack-decision.md", "severity": "high", "auto_bridgeable": False})
+    hats["compliance"] = min(s, 10)
+
+    composite = (hats["identity"] + hats["stack"] + hats["brd"] +
+                 hats["ux"] + hats["compliance"]) * 2  # 0-100
+
+    # Bridge plan: list gaps grouped by auto-bridgeable vs founder-action
+    auto_bridges = [g for g in gaps if g.get("auto_bridgeable")]
+    founder_actions = [g for g in gaps if not g.get("auto_bridgeable")]
+
+    # Decision banner
+    if composite >= 90:
+        verdict = "✅ Ship-grade input. Plan-mode preview proceeds."
+    elif composite >= 80:
+        verdict = "🟡 Bridge-grade input. Apply auto-bridges + surface founder actions in plan-mode preview."
+    elif composite >= 70:
+        verdict = "🟠 Below ship gate. Auto-bridges will lift composite; founder actions surface in plan-mode preview."
+    else:
+        verdict = "🔴 Input has serious gaps. Surface ALL gaps as actionable items; bootstrap proceeds with what's available."
+
+    return {
+        "hats": hats,
+        "composite": composite,
+        "max_possible": 100,
+        "auto_bridges": auto_bridges,
+        "founder_actions": founder_actions,
+        "verdict": verdict,
+    }
 
 
 def parse_bootstrap_prompt(eo_brain, warnings):
@@ -718,7 +1005,9 @@ def ingest(eo_brain):
 
     language = parse_language(eo_brain, brd_text_raw, warnings)
     identity = parse_identity(eo_brain, warnings, questions)
-    stack = parse_stack(eo_brain, warnings)
+    founder_country = parse_founder_country(eo_brain, warnings)
+    identity["founder_country"] = founder_country
+    stack = parse_stack(eo_brain, warnings, founder_country)
     bootstrap_prompt = parse_bootstrap_prompt(eo_brain, warnings)
     ux_artifacts = parse_ux_artifacts(eo_brain, warnings)
     brd = parse_brd(eo_brain, warnings)
@@ -797,9 +1086,9 @@ def ingest(eo_brain):
         "phase_5_handover": os.path.isdir(os.path.join(eo_brain, "5-CodeHandover")),
     }
 
-    return {
-        "schema_version": "1.0",
-        "ingester_version": "1.0",
+    result = {
+        "schema_version": "1.1",
+        "ingester_version": "1.1",
         "ingested_at": datetime.utcnow().isoformat() + "Z",
         "eo_brain_path": os.path.abspath(eo_brain),
         "language": language,
@@ -813,6 +1102,9 @@ def ingest(eo_brain):
         "questions": questions,
         "refused": False,
     }
+    # v1.4.4: multi-hat input score + bridge plan
+    result["score"] = score_inputs(result)
+    return result
 
 
 # ----------------------------------------------------------------------------

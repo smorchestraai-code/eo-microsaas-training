@@ -226,17 +226,63 @@ Common question keys:
 ```bash
 project_name=$(echo "$PARSE_OUT" | jq -r '.identity.project_name')
 founder_name=$(echo "$PARSE_OUT" | jq -r '.identity.founder_name')
+founder_country=$(echo "$PARSE_OUT" | jq -r '.identity.founder_country')
 language=$(echo "$PARSE_OUT" | jq -r '.language.lang')
 stack_frontend=$(echo "$PARSE_OUT" | jq -r '.stack.frontend')
+payment_primary=$(echo "$PARSE_OUT" | jq -r '.stack.payment_primary')
+payment_rationale=$(echo "$PARSE_OUT" | jq -r '.stack.payment_rationale')
 deploy_lane=$(echo "$PARSE_OUT" | jq -r '.stack.deploy_lane')
 mena_flag=$(echo "$PARSE_OUT" | jq -r '.stack.mena')
 story_count=$(echo "$PARSE_OUT" | jq -r '.brd.story_count')
 ac_count=$(echo "$PARSE_OUT" | jq -r '.brd.total_acs')
 warnings=$(echo "$PARSE_OUT" | jq -r '.warnings[]')
 normalization_plan=$(echo "$PARSE_OUT" | jq -r '.brd.normalization_plan[]')
+
+# v1.4.4: multi-hat input score + bridge plan
+score_composite=$(echo "$PARSE_OUT" | jq -r '.score.composite')
+score_verdict=$(echo "$PARSE_OUT" | jq -r '.score.verdict')
+auto_bridges=$(echo "$PARSE_OUT" | jq -c '.score.auto_bridges')
+founder_actions=$(echo "$PARSE_OUT" | jq -c '.score.founder_actions')
 ```
 
-These feed Step 9's plan-mode preview. Founder approves the whole bootstrap (identity + carve + loops + normalization plan) in one gate.
+These feed Step 9's plan-mode preview. Founder approves the whole bootstrap (identity + carve + loops + normalization plan + bridge actions) in one gate.
+
+#### Step 7e — Self-score the input + show bridge plan (the v1.4.4 fix)
+
+The parser ALREADY scored the input (5-hat: Identity / Stack / BRD / UX / Compliance, 0-10 each, composite 0-100). The plugin's job in this step is:
+
+1. **Show the score** in plan-mode preview — composite + per-hat breakdown
+2. **Apply auto-bridges** automatically — these are safe normalizations (e.g. infer carve tags, infer loops, inject canonical SCOPE block) that the parser flagged as `auto_bridgeable: true`
+3. **Surface founder actions** — gaps that require founder decision (move story up, add v2 story, switch deploy lane)
+4. **Aim for 10/10 against what the input allows** — composite ≥ 90 is the ship-grade target. If input has unbridgeable gaps (e.g. genuinely missing UX artifacts), composite caps below 90 — that's surfaced honestly, scaffold proceeds anyway.
+
+Print to founder:
+
+```
+═══════ INPUT QUALITY SCORE ═══════
+
+  COMPOSITE: 88/100
+  Verdict:   🟡 Bridge-grade. Auto-bridges + 1 founder action will lift to 92.
+
+  identity     ██████████ 10/10
+  stack        ██████████ 10/10
+  brd          ████░░░░░░ 4/10
+  ux           ██████████ 10/10
+  compliance   ██████████ 10/10
+
+AUTO-BRIDGES (applied automatically):
+  • [brd] carve untagged → tag stories [1,2,3,4]=MVP, [5,6]=Phase2
+  • [brd] loops untagged → infer from content (founder approves per-story)
+  • [brd] SCOPE binary → inject canonical 3-block
+
+FOUNDER ACTIONS (need decision):
+  🔴 [brd] Weekend MVP missing loops: [deploy, money, observability]
+       → promote Story 6 (covers money) into MVP, or accept partial MVP
+
+After auto-bridges + your decisions, projected composite: 92/100 ✅
+```
+
+**Never block on score.** If composite is below 90, surface the gap, apply what's safe, let founder decide on the rest, scaffold proceeds. The goal is "10/10 against what the input allows," not "10/10 absolute."
 
 ### Step 8 — (REMOVED in v1.4.3 — identity extraction now lives in the ingester at Step 7a)
 
