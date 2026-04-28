@@ -10,15 +10,23 @@ description: Systematic root-cause debugging. Hypothesis → evidence → fix �
 ## What it does
 
 1. Capture the failure: exact error, reproduction steps, environment
-2. Run superpowers:systematic-debugging (degrades to internal hypothesis loop if the plugin is not installed)
-3. Form hypothesis, gather evidence, confirm/refute
-4. Fix at root cause (not symptom)
-5. Add a regression test tagged `@AC-N.N` or `@bug-NNN`
-6. Run elegance-pause on the fix
-7. **Self-score the affected AC** after the fix + tests are green:
+2. Run gstack:investigate first (filesystem + git history scan, candidate-cause surfacing) — degrades silently if not installed
+3. Run superpowers:systematic-debugging (degrades to internal hypothesis loop if the plugin is not installed)
+4. Form hypothesis, gather evidence, confirm/refute
+5. Fix at root cause (not symptom)
+6. Add a regression test tagged `@AC-N.N` or `@bug-NNN`
+7. Run elegance-pause on the fix
+8. **Self-score the affected AC** after the fix + tests are green:
    - ≥ 80 → closed; write a one-line verdict to `docs/qa-scores/<timestamp>-debug.md`
    - < 80 → keep the bug open, flag a follow-up in `_dev-progress.md` Notes column
-8. Append lesson via lessons-manager if pattern
+9. Append lesson via lessons-manager if pattern
+
+## Hidden plumbing (graceful degrade)
+
+| Step | First choice | Fallback |
+|------|--------------|----------|
+| Investigate (filesystem + git scan) | `gstack:investigate` | Skip — go straight to hypothesis |
+| Debug | `superpowers:systematic-debugging` | Internal hypothesis loop |
 
 ## Workflow
 

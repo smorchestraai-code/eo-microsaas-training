@@ -27,8 +27,10 @@ description: Plan a feature before coding. Reads BRD, past lessons, and drafts a
 7. If MENA ICP → note arabic-rtl-checker + mena-mobile-check will apply
 8. Draft the plan (prefer superpowers:writing-plans if installed; internal drafter otherwise)
 9. Optional CEO review pass (gstack:plan-ceo-review if installed) — rewrites plan for founder readability
-10. Present plan, wait for user approval
-11. On approval: exit plan mode, begin superpowers:test-driven-development (or /3-eo-code's internal TDD loop if superpowers absent)
+10. Optional eng review pass (gstack:plan-eng-review if installed) — opinionated architecture/data-flow/edge-case pass
+11. Optional design review pass (gstack:plan-design-review if installed AND plan touches UI components) — rates each design dimension 0-10, fixes the plan to get there
+12. Present plan, wait for user approval
+13. On approval: exit plan mode, begin superpowers:test-driven-development (or /3-eo-code's internal TDD loop if superpowers absent)
 ```
 
 ## Hidden plumbing (graceful degrade)
@@ -39,6 +41,8 @@ Skills tried in order, fallback is always local logic — the founder never sees
 |------|--------------|----------|
 | Draft plan | `superpowers:writing-plans` | Internal plan drafter |
 | CEO-review pass | `gstack:plan-ceo-review` | Skip — the plan ships as-is |
+| Eng-review pass | `gstack:plan-eng-review` | Skip |
+| Design-review pass (UI plans only) | `gstack:plan-design-review` | Skip |
 | TDD handoff | `superpowers:test-driven-development` | `/3-eo-code` internal TDD loop |
 
 ## Arguments
