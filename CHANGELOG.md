@@ -7,6 +7,23 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.3] — 2026-04-28
+
+### Changed
+
+- **`eo-microsaas-dev` plugin 1.4.3** — Resilient Bootstrap. `/1-eo-dev-start` cannot fail on legitimate EO-Brain input. v1.4.2's hardcoded `^## Story` regex (which rejected v2.7.0 architect output using `### Story` h3 headers) replaced with `eo-brain-ingester` skill — Python parser handling drifted headers, prose `profile-settings.md`, missing files, partial content, Arabic + English. Hard-refuse only on (a) EO-Brain missing or (b) BRD zero ACs. Every other gap surfaces as a blocking question for founder approval. 5 fixture EO-Brain folders + `--self-test` harness shipped. Verified end-to-end against `10-EO-Brain-Starter-Kit Final/EO-Brain/` (the case v1.4.2 rejected): now extracts "EO Oasis MENA" + "Mamoun Alamouri" cleanly, surfaces 3 blocking questions (carve approval, loop approval, MVP loop gap), proceeds without refusal. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** 1.2.2 → 1.2.3.
+
+### Audit (not fixed this release)
+
+- `eo-microsaas-os` (Cowork-side architect) has the **same brittle pattern** in `validate-brd.sh` (8 hard-refuse exit codes). Will be addressed in `eo-microsaas-os` v2.7.1 follow-up. The dev plugin's v1.4.3 parser neutralizes this — whatever the architect produces, the dev plugin accepts.
+
+### Migration
+
+`claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the resilient parser. Restart Claude Code.
+
+---
+
 ## [1.2.2] — 2026-04-27
 
 ### Changed

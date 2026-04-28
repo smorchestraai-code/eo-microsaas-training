@@ -177,7 +177,19 @@ This is non-negotiable: a component shipped that doesn't match the artifact → 
 
 ### Step 4 — Scaffold src/ per SaaSfast mode + tech stack
 
-**Inputs (passed from `eo-dev-start` Step 10):** `saasfast_used` (true/false from Step 8a), `saasfast_mode` (M0/M1/M2/M3 from Step 8b), `payment_provider`, `stack`, `mena_flag`.
+**Inputs (v1.4.3+):** the **`BrainStructure`** JSON object produced by `eo-brain-ingester/parse.py` at `eo-dev-start` Step 7a, plus the `answers.json` map of founder responses to blocking questions from Step 7c. Read fields directly from these objects — DO NOT re-parse the EO-Brain folder. The ingester is the single source of truth.
+
+```bash
+brain=$(cat /tmp/brain-structure.json)
+answers=$(cat /tmp/answers.json)
+saasfast_used=$(echo "$answers" | jq -r '.saasfast_used // "true"')
+saasfast_mode=$(echo "$answers" | jq -r '.saasfast_mode // "M1"')
+payment_provider=$(echo "$brain" | jq -r '.stack.payments[0] // "stripe"')
+stack_frontend=$(echo "$brain" | jq -r '.stack.frontend')
+mena_flag=$(echo "$brain" | jq -r '.stack.mena')
+```
+
+The structured object contains: identity, language, stack, BRD breakdown (with carve + loop tags inferred + founder-approved), normalization plan. No regex, no file walking, no format guessing in this step.
 
 **Hard precedence rule:** `saasfast_used=false` always means M0 — scaffold raw stack from `tech-stack-decision.md`, pull in zero SaaSfast pieces. Do not run any M1/M2/M3 branch even if a stale `saasfast_mode` value was passed. The founder said no in Step 8a; respect it.
 
