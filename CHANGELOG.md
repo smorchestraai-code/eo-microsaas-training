@@ -7,6 +7,17 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.5] — 2026-04-29
+
+### Changed
+- **`eo-microsaas-dev` plugin 1.4.5** — L3 cascade parity. Companion release to `smorch-dev` v1.5.0. Adds `plan-eng-review` + `plan-design-review` to `/2-eo-dev-plan` and `gstack:investigate` to `/eo-debug`. Purely additive at the plumbing layer; v1.4.4's resilient bootstrap (parser + scoring + Stripe-default + auto-execute) unchanged. Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace alignment:** `1.2.4` → `1.2.5` (closes the version mismatch — v1.4.5 plugin shipped without a marketplace bump on the original commit).
+
+### Migration
+`claude plugin update eo-microsaas-dev@eo-microsaas-training`. Restart Claude Code.
+
+---
+
 ## [1.2.4] — 2026-04-28
 
 ### Fixed

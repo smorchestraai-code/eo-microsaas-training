@@ -5,6 +5,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.5] — 2026-04-29
+
+### Added
+
+- **L3 cascade parity** — companion release to `smorch-dev` v1.5.0. Wires two new plan-mode helpers and a debug-time investigator into the existing chain:
+  - **`plan-eng-review`** + **`plan-design-review`** added to `/2-eo-dev-plan` (engineering + design pre-review during plan, surfaces architectural risks before TDD starts).
+  - **`gstack:investigate`** added to `/eo-debug` (evidence-based root-cause investigation; complements `superpowers:systematic-debugging`).
+- v1.4.4's resilient parser, multi-hat scoring, country-aware payment routing, and auto-execute post-scaffold remain unchanged. v1.4.5 is purely additive at L3 (plumbing layer).
+
+### Changed
+
+- `eo-microsaas-dev/.claude-plugin/plugin.json` 1.4.4 → 1.4.5.
+
+### Migration
+
+No breaking changes. `claude plugin update eo-microsaas-dev@eo-microsaas-training` picks up the new plan-mode helpers + investigator. Restart Claude Code.
+
+---
+
 ## [1.4.4] — 2026-04-28
 
 Three real fuckups in v1.4.3 named, owned, fixed.
