@@ -7,6 +7,23 @@ project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.6] — 2026-04-29
+
+### Fixed
+- **`eo-microsaas-dev` plugin 1.4.6** — five real bugs from a real end-to-end run, all fixed:
+  - **(#1)** `/3-eo-code` was advising `/5-eo-score` next, skipping `/4-eo-review`. Now keeps Status at `🔨 coding` until `/4-eo-review` runs cleanly. `/4-eo-review` is the only gate that flips to `🧪 scoring`.
+  - **(#2)** `/eo-github` is now fully autonomous via MCP. New Step 4.5 discovers `mcp__Github-*__*` MCPs and picks by founder handle in `profile-settings.md`. Step 6 replaces `git push` with `create_or_update_file` (seed) → chunked `push_files` (200KB budget) → `list_commits` (verify) → local refs reset. **No more `gh auth login` prompts to the founder.**
+  - **(#3)** SaaSfast yes/no question regressed in v1.4.3 — fixed by adding it as the FIRST blocking question in `parse.py`'s `questions[]` array. Default `yes`.
+  - **(#4)** GitHub setup is now mandatory when `saasfast_used=yes` (the SaaSfast-ar clone needs a destination). The 4-option question only fires when `saasfast_used=no`.
+  - **(#5)** SaaSfast-ar clone discipline codified at `handover-bridge` Step 4a — locate source, capture SHA, rsync per-mode subset (M1/M2/M3) INTO project, rebrand copied files, verify source untouched (porcelain checksum), evidence table. Source stays read-only.
+  - Full detail: `eo-microsaas-dev/CHANGELOG.md`.
+- **Marketplace bump:** 1.2.5 → 1.2.6.
+
+### Migration
+`claude plugin update eo-microsaas-dev@eo-microsaas-training`. Restart Claude Code.
+
+---
+
 ## [1.2.5] — 2026-04-29
 
 ### Changed

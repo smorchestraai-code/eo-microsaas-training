@@ -1,6 +1,6 @@
 {
   "name": "eo-microsaas-dev",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "EO MicroSaaS Dev plugin for non-technical founders — weekend-ship MVP. v1.4.3 ships the Resilient Bootstrap: /1-eo-dev-start cannot fail on legitimate EO-Brain input. Hardcoded regex validation removed; replaced with eo-brain-ingester (Python parser handling drifted headers, prose profile-settings.md, missing files, partial content, Arabic + English). Hard-refuse only on (a) EO-Brain dir missing or (b) BRD has zero AC-N.N tags. Every other gap surfaces as a blocking question for founder approval in plan-mode preview. Linear build chain 1-8 (/1-eo-dev-start → /2-eo-dev-plan → /3-eo-code → /4-eo-review → /5-eo-score → /6-eo-bridge-gaps → /7-eo-ship → /8-eo-retro) — 8 numbered steps in order across the weekend. 7 utilities un-numbered, alphabetical (/eo-debug, /eo-dev-repair, /eo-freeze, /eo-github, /eo-guide, /eo-status, /eo-unfreeze). 12 skills (added eo-brain-ingester + brd-normalizer in v1.4.3). GitHub admin via /eo-github (MCP-only). Self-scoring on ship + repair + debug. CEO-voice founder-facing artifacts. MENA-specific checks (Arabic RTL, mobile 375px).",
   "author": {
     "name": "SMOrchestra.ai / Entrepreneurs Oasis MENA",

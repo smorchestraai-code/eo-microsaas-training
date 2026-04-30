@@ -5,6 +5,50 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versioning: [SemVer](
 
 ---
 
+## [1.4.6] — 2026-04-29
+
+End-to-end run on a real project surfaced **five** real bugs. All five fixed in this release.
+
+### Fixed
+
+- **(#1) `/3-eo-code` advised `/5-eo-score` next, skipping `/4-eo-review`.** v1.4.2's linear-chain cleanup intended `/3 → /4 → /5 → ...`. The `commands/3-eo-code.md` "After green" block at line 56 was telling founders to flip Status to `🧪 scoring` (which the legend defines as "tests pass, awaiting `/5-eo-score`") — implicitly skipping review. Fixed: `/3-eo-code` now keeps Status at `🔨 coding` and routes to `/4-eo-review`. Only `/4-eo-review` flips Status to `🧪 scoring` (added a parallel "After review — update tracker" block to `commands/4-eo-review.md`).
+
+- **(#2) `/eo-github` was not autonomous — fell back to `gh auth login` shell prompt on multi-account machines.** The skill ended Mode 1 / Mode 2 with `git push -u origin main`, which runs against local git auth. With multiple GitHub accounts (e.g. `alamouri99` for student demos vs `smorchestraai-code` for SMO main), the wrong-account default broke the push and the skill asked the founder to run `gh auth login` in their terminal — violating the v1.4.4 contract for non-technical founders. Fixed: replaced the `git push` step with a fully-autonomous MCP push pipeline (Step 6 rewrite + new Step 4.5):
+  - **Step 4.5 — MCP discovery + account selection.** Enumerates all `mcp__Github-*__*` MCPs, calls `search_users(q="me")` against each to map server → login, picks the one matching the founder's GitHub handle in `profile-settings.md`. Falls back to first non-`Github-smo` MCP if no handle found. Records `$github_mcp` for all subsequent calls.
+  - **Step 6a — `create_or_update_file` seeds the empty repo** with README (the Git Trees API used by `push_files` requires a base ref, which an empty repo doesn't have).
+  - **Step 6b — Chunked `push_files`** by total decoded bytes (200KB budget per chunk, 1MB per-file cap, alphabetical greedy packing). Skips binaries >1MB to warnings — never silently drops files.
+  - **Step 6c — `list_commits` verification** + `git fetch origin main` + `git reset --soft origin/main` to align local refs with the MCP-pushed remote. Working tree clean after.
+  - **Step 6d — CEO-brief evidence table** to founder. No `gh auth login` prompt, ever.
+
+- **(#3) Step 8a SaaSfast yes/no question regressed in v1.4.3 and didn't fire on the user's run.** v1.4.3's Step 7 rewrite folded all questions into `parse.py`'s `questions[]` array, but the SaaSfast question was never added to that array — only kept in skill markdown. Result: parser surfaced only `carve_approval` / `loop_approval` / `mvp_loop_gap`; the SaaSfast question never reached the founder. Fixed: `parse.py` `ingest()` now ALWAYS appends `saasfast_used` as the FIRST blocking question. Default = `yes` (Weekend MVP default). Press Enter to accept, type `no` to override. Visible in plan-mode preview before any other approval gate.
+
+- **(#4) GitHub setup was optional even when `saasfast_used=yes`.** Without GitHub at start, the SaaSfast-ar clone has no upstream destination — the whole point of cloning is the founder owns + pushes the subset. Fixed: `eo-dev-start/SKILL.md` Step 9b is now conditional on `saasfast_used`. When `yes`, GitHub is mandatory: `github_intent = "create"` is set automatically, the 4-option question is skipped, founder gets a one-line notice ("🔗 SaaSfast=yes → GitHub required at start"). When `no`, the existing 4-option flow runs (founder can pick `local-only`).
+
+- **(#5) SaaSfast-ar clone discipline wasn't codified.** Skill markdown said "saasfast-ar shouldn't be touched directly" but the actual clone-and-extract logic wasn't in `handover-bridge`. Fixed: added Step 4a to `handover-bridge/SKILL.md`. When `saasfast_used=yes`:
+  - Locate SaaSfast-ar source (`~/SaaSfast-ar`, env var, or fresh `git clone`).
+  - Capture source SHA + porcelain status (audit trail).
+  - rsync per-mode subset INTO `$ROOT` (M1 = backend libs + supabase + .env.example; M2 adds auth + marketing + dashboard shell; M3 adds full dashboard + components/ui).
+  - Search-and-replace `SaaSfast` → `$project_name` in copied files only.
+  - Verify SaaSfast-ar source unchanged (porcelain checksum match) — if violated, ROLL BACK the extraction and exit.
+  - Evidence table records the SHA + file count + verified clean.
+
+### Verification
+
+- Real EO-Brain at `10-EO-Brain-Starter-Kit Final/EO-Brain/` parses with `saasfast_used` as the first question.
+- Default-path founder run: SaaSfast=yes (Enter) → GitHub auto-routes to `create` → MCP pipeline pushes scaffold + SaaSfast-ar subset + EO-layer files in chunks → no terminal shell prompts.
+- All 5 fixtures still pass `parse.py --self-test`.
+
+### Versions
+
+- `eo-microsaas-dev` 1.4.5 → 1.4.6
+- Marketplace `eo-microsaas-training` 1.2.5 → 1.2.6
+
+### Migration
+
+No breaking changes for existing in-flight projects. `claude plugin update eo-microsaas-dev@eo-microsaas-training`. Restart Claude Code.
+
+---
+
 ## [1.4.5] — 2026-04-29
 
 ### Added

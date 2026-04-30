@@ -64,3 +64,12 @@ description: Self-review a PR or working branch. Catches bugs, security, Arabic 
 
 **Ready for /5-eo-score?** (fix 🔴 first)
 ```
+
+## After review — update tracker
+
+Update `_dev-progress.md` row for this story:
+- `Status` = `🧪 scoring` (review clean — all ACs green, no 🔴 must-fix items remain)
+- `Status` stays `🔨 coding` if review surfaced 🔴 must-fix items (founder fixes, then re-runs `/4-eo-review`)
+- `Last updated` = today; `Last command` = `/4-eo-review`
+
+**Linear next: `/5-eo-score`** (only when review is clean). `/4-eo-review` is the **only** gate that flips Status from `🔨 coding` to `🧪 scoring`. `/3-eo-code` never sets `🧪 scoring` directly — that would skip review.

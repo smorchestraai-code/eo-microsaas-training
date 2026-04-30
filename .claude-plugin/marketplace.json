@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "EO MicroSaaS training marketplace — student-facing Claude Code plugin for the weekend-ship MVP workflow. Pair with EO-Brain (business brain) for full idea → shipped MVP pipeline.",
-    "version": "1.2.5"
+    "version": "1.2.6"
   },
   "plugins": [
     {
