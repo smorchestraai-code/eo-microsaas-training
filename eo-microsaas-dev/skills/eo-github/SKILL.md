@@ -11,11 +11,12 @@ version: "1.1"
 **Purpose:** The only skill in the plugin allowed to create or wire up a GitHub remote. `/1-eo-dev-start` routes here when a student explicitly asks for GitHub. Students can also invoke directly after local trial work.
 
 **Hard contracts:**
-- Never runs without GitHub MCP (`mcp__github__*`) connected. If missing → refuse with remediation.
+- Never runs without a GitHub MCP connected. The skill auto-discovers `mcp__Github-*__*` MCPs at Step 4.5 and picks the right one for the founder's account (no `gh auth login` prompt). If zero are connected → refuse with install remediation (Step 2 Case A).
 - Never overwrites an existing remote. Once `origin` is set, this skill refuses.
 - Never force-pushes. Never writes to a non-empty remote (protects against adopting someone else's repo).
 - Private by default. Student flips visibility later via GitHub UI.
 - Plan-mode preview before any remote creation or `git remote add`.
+- **v1.4.6 — Autonomous push pipeline.** Default path is the MCP-based push (Step 6: `create_or_update_file` to seed → chunked `push_files` → `list_commits` to verify → local refs reset to align). NO `git push -u origin main` from the founder's shell. The shell-based manual runbook (Step 2b) is the **last resort** invoked only when zero `Github-*` MCPs are reachable, never as a workaround for account mismatch.
 
 ---
 
@@ -388,6 +389,56 @@ No writes made.
 
 Exit.
 
+### Step 4.5 — GitHub MCP discovery + account selection (v1.4.6, autonomous)
+
+Multiple `mcp__Github-*__*` MCPs may be installed (e.g. `Github-alamouri`, `Github-smo`). Each is pre-authenticated as a different GitHub account. The skill must pick the right one **without asking the founder to run `gh auth login` or `gh auth switch`**.
+
+#### 4.5a — Discover
+
+```
+1. Enumerate available MCP servers matching `Github-*`.
+2. For each, call mcp__$mcp__search_users(q="me", per_page=1) → returns the
+   authenticated user's login (cheap call, no side effects).
+3. Build map: { mcp_server_name → github_login }.
+```
+
+If zero `Github-*` MCPs are connected → fall through to existing Step 2 Case A (install MCP). The skill DOES NOT ask the founder to run `gh auth login` for account-switching purposes — only for missing-MCP installation.
+
+#### 4.5b — Select (deterministic priority)
+
+```
+1. Read EO-Brain/1-ProjectBrain/profile-settings.md for the founder's GitHub
+   handle. Match patterns: "github.com/{login}", "GitHub: {login}",
+   "@{login}".
+2. If found AND matches one of the discovered MCPs → pick that MCP. Done.
+3. If profile-settings doesn't name a handle:
+   - Default to the MCP whose login matches the project's intended owner per
+     `tech-stack-decision.md` (look for "GitHub org/owner: {x}").
+   - Otherwise default to the first MCP that's NOT `Github-smo` (preserve
+     SMO main-work isolation — student demos should never accidentally push
+     to the SMO production org).
+4. If multiple `Github-*` MCPs match the founder's handle (shouldn't happen,
+   but defensive) → pick the lexicographically-first one and warn.
+```
+
+Record the chosen MCP and login in session state for all subsequent calls:
+
+```
+$github_mcp     = "Github-alamouri"  (the MCP server to call)
+$github_login   = "alamouri99"        (the account doing the work)
+$default_owner  = $github_login OR resolved org if BRD names one
+```
+
+All subsequent MCP calls in this skill use `mcp__$github_mcp__*` (not `mcp__github__*` — that namespace doesn't exist if the user installed the per-account variant).
+
+#### 4.5c — Show selection to founder (one line, no approval needed)
+
+```
+🔑 Using GitHub account: $github_login (via $github_mcp MCP)
+```
+
+This is informational. The founder doesn't need to approve — the selection is deterministic from `profile-settings.md`. If they want a different account, they edit `profile-settings.md` and re-run.
+
 ### Step 5 — Branch by mode
 
 #### Mode 1 (`create`) — derive slug + show plan
@@ -704,36 +755,110 @@ Run in this exact order. If any sub-step fails, stop and roll back only what thi
    fi
    ```
 
-4. **Create remote repo (Mode 1 only):** via MCP, create `{default_owner}/{slug}` with visibility=private, description, default_branch=main. Capture the `clone_url` (SSH).
+4. **Create remote repo (Mode 1 only):** via MCP, `mcp__$github_mcp__create_repository(name=$slug, private=true, description, auto_init=false)`. The `auto_init=false` is critical — we'll seed the repo ourselves at Step 6a (so `push_files` has a base ref of our choosing, and there's no GitHub-generated README to collide with).
 
-5. **Wire remote:**
-   ```
-   git remote add origin {clone_url}
+   Capture the `html_url` and `clone_url` (HTTPS — `clone_url`, NOT `ssh_url`).
+
+5. **Wire remote (HTTPS, idempotent):**
+   ```bash
+   cd "$ROOT"
+   git remote remove origin 2>/dev/null  # idempotent — clear stale remote
+   git remote add origin "$clone_url"     # HTTPS, e.g. https://github.com/owner/slug.git
    ```
 
-6. **Push:**
+   We use HTTPS, NOT SSH, so the remote URL works without local SSH-key auth. The actual push happens via MCP in Step 6 — no `git push` from the founder's shell.
+
+6. **Push files via MCP — autonomous, replaces local `git push` (v1.4.6):**
+
+   This is the autonomous pipeline. NO `git push` from the founder's shell. NO `gh auth login` prompts. Works even when the founder has multiple GitHub accounts and the wrong one is the local-default.
+
+   #### 6a. Bootstrap empty repo via `create_or_update_file`
+
+   The Git Trees API (which `mcp__$github_mcp__push_files` wraps) requires a base ref to update. A freshly-created empty repo has no ref to base on. Seed it with one file via `create_or_update_file` (single-file API, works on empty repos):
+
    ```
-   git push -u origin main
+   # Read local README.md, base64-encode the content
+   if [[ -f "$ROOT/README.md" ]]; then
+     readme_content=$(base64 < "$ROOT/README.md")
+   else
+     readme_content=$(echo -e "# $project_name\n\nBootstrap seed for push_files." | base64)
+   fi
+
+   mcp__$github_mcp__create_or_update_file(
+     owner=$default_owner,
+     repo=$slug,
+     branch="main",
+     path="README.md",
+     content=$readme_content,
+     message="seed: README.md (bootstrap empty repo for push_files)"
+   )
    ```
 
-   If the remote had a README and push is rejected as non-fast-forward → refuse with:
-   ```
-   ❌ Push rejected — remote has commits not in local.
-   
-   The remote has a commit (likely auto-generated README) that isn't in
-   your local history. Resolve manually:
-     git pull --rebase origin main
-     git push -u origin main
-   
-   No further writes made.
-   ```
-   Do NOT force push.
+   This creates commit #1 on `main`. From here, `push_files` works.
 
-7. **Create `dev` branch (team strategy only):**
+   #### 6b. Build chunks from local working tree
+
+   Walk `$ROOT` filesystem (respecting `.gitignore`) and produce a list of `(path, content)` tuples. Chunk by **TOTAL DECODED BYTES** per chunk, NOT by file count:
+
+   - Per-chunk byte budget: **200KB** (well under MCP/Read 256KB cap with margin for the API JSON envelope)
+   - Per-file byte cap: **1MB** (skip larger; log to warnings — usually binaries or build outputs that shouldn't be in git anyway)
+   - Excludes: `node_modules/`, `.next/`, `.env`, `.env.local`, `.git/`, `.DS_Store`, `*.log`
+   - Chunk ordering: deterministic — sort paths alphabetically, pack greedily
+
+   For each chunk:
+
    ```
-   git checkout -b dev
-   git push -u origin dev
-   git checkout main
+   mcp__$github_mcp__push_files(
+     owner=$default_owner,
+     repo=$slug,
+     branch="main",
+     files=[ {path, content (base64)}, ... ],
+     message="chunk N/M: <comma-sep first 3 file paths> + N more"
+   )
+   ```
+
+   On error, retry once with the chunk split in half. If that fails, surface the specific error + which files were left behind. **Never silently drop files.**
+
+   #### 6c. Verify via `list_commits` + reconcile local refs
+
+   ```
+   mcp__$github_mcp__list_commits(owner=$default_owner, repo=$slug, sha="main")
+   ```
+
+   Confirm: chunks + seed appear in expected order; final commit count matches expected; HEAD SHA matches the last chunk's commit.
+
+   Then reconcile local with remote so `git status` is clean:
+
+   ```bash
+   cd "$ROOT"
+   git fetch origin main
+   git reset --soft origin/main   # local working-tree files match remote;
+                                   # this just aligns the commit-history pointer.
+   ```
+
+   Produces clean state: `git status` shows no uncommitted changes; `git log` shows the same commits as `list_commits` returned.
+
+   #### 6d. Print evidence table to founder (CEO-brief format)
+
+   ```
+   ✅ /eo-github — autonomous via MCP
+   ──────────────────────────────────────────────
+   Repo:        https://github.com/$default_owner/$slug   (private)
+   Account:     $github_login (selected MCP: $github_mcp)
+   Files:       N pushed in M chunks (P kB total)
+   Skipped:     X files (>1MB, see warnings) | none
+   Local:       remote origin set to HTTPS, working tree clean
+   Verified:    M commits on remote (list_commits ✓)
+
+   Next: continue your build. /eo-github does not block /7-eo-ship.
+   ```
+
+   **No `gh auth login` prompt to the founder.** Never. Account selection happened in Step 4.5 via MCP discovery.
+
+7. **Create `dev` branch (team strategy only):** via MCP, not `git checkout`:
+
+   ```
+   mcp__$github_mcp__create_branch(owner=$default_owner, repo=$slug, branch="dev", from_branch="main")
    ```
 
 ### Step 6b — Align settings (Mode 1 always; Mode 2 unless `skip-settings`)

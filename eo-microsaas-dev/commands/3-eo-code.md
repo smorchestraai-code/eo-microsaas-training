@@ -53,6 +53,12 @@ description: Execute a planned feature via TDD. Writes test first, then minimal 
 ## After green — update tracker
 
 Update `_dev-progress.md` row for this story:
-- `Status` = `🔨 coding` (still coding) or `🧪 scoring` (all ACs green, time to `/5-eo-score`)
+- `Status` stays `🔨 coding`. **`/3-eo-code` does NOT flip status to `🧪 scoring`.** That happens only when `/4-eo-review` runs cleanly.
 - `Tests` = `{passing}/{total} passing`
 - `Last updated` = today; `Last command` = `/3-eo-code {arg}`
+
+**Linear next: `/4-eo-review`** (NOT `/5-eo-score` — never skip review). Print to founder:
+```
+✅ All ACs green. Status stays 🔨 coding until review passes.
+   Next: /4-eo-review (catches bugs, security, RTL, mobile issues before scoring)
+```

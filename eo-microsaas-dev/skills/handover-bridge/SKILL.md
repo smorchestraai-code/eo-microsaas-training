@@ -175,6 +175,122 @@ for any UI work. `/2-eo-dev-plan` reads them when planning visual features.
 
 This is non-negotiable: a component shipped that doesn't match the artifact → UX hat Q1 drops to 6.
 
+### Step 4a — Clone SaaSfast-ar + extract per-mode subset (v1.4.6, when saasfast_used=yes)
+
+**Skip entirely if `saasfast_used=false`.** Otherwise this step runs BEFORE Step 4 (Next.js scaffold) so the SaaSfast subset lands first; Step 4 then layers project-specific scaffolding on top.
+
+**Hard rule:** `SaaSfast-ar` source is **read-only**. The skill never edits it in place. Every project gets its own copy of the subset — that copy is what the founder owns + edits + commits.
+
+#### 4a.1 — Locate SaaSfast-ar source
+
+Search in order, first hit wins:
+1. `~/SaaSfast-ar` (default install location)
+2. `~/Desktop/cowork-workspace/SaaSfast-ar`
+3. `${SAASFAST_AR_PATH}` env var if set
+4. If none of the above → clone canonical:
+   ```bash
+   git clone https://github.com/smorchestraai-code/SaaSfast-ar.git ~/SaaSfast-ar
+   ```
+   HTTPS clone, no GitHub MCP needed (the upstream is read-only for this purpose).
+
+Record `SAASFAST_AR_ROOT` for the rest of Step 4a.
+
+#### 4a.2 — Capture source SHA (audit trail)
+
+```bash
+SAASFAST_AR_SHA=$(git -C "$SAASFAST_AR_ROOT" rev-parse --short HEAD)
+SAASFAST_AR_BEFORE_CHECKSUM=$(git -C "$SAASFAST_AR_ROOT" status --porcelain | wc -l)
+# After this step, SAASFAST_AR_BEFORE_CHECKSUM must equal the same count (proof of read-only)
+```
+
+#### 4a.3 — Extract per-mode subset to `$ROOT`
+
+Per `saasfast_mode` (from `BrainStructure`), copy these paths from `$SAASFAST_AR_ROOT` to `$ROOT`. **rsync, not symlink** — the founder owns the copy.
+
+| Mode | Paths to copy from SaaSfast-ar |
+|------|---|
+| **M0 — None** | (skip — no SaaSfast pieces) |
+| **M1 — Backend** | `src/lib/supabase/`, `src/lib/payment/`, `src/lib/email/`, `src/lib/i18n/`, `supabase/`, `.env.example` |
+| **M2 — Gate** | M1 paths + `src/app/(auth)/`, `src/app/(marketing)/`, `src/app/(dashboard)/_layout.tsx` (the shell only, not the full dashboard) |
+| **M3 — Core** | M2 paths + `src/app/(dashboard)/`, `src/components/ui/`, `src/components/layout/` |
+
+```bash
+case "$saasfast_mode" in
+  M0)
+    echo "  saasfast_mode=M0 → skip extraction"
+    ;;
+  M1|M2|M3)
+    rsync -a \
+      --exclude='node_modules' --exclude='.next' --exclude='.git' \
+      --exclude='*.log' --exclude='.env.local' --exclude='.env' \
+      "$SAASFAST_AR_ROOT/src/lib/supabase/"  "$ROOT/src/lib/supabase/"
+    rsync -a "$SAASFAST_AR_ROOT/src/lib/payment/" "$ROOT/src/lib/payment/"
+    rsync -a "$SAASFAST_AR_ROOT/src/lib/email/"   "$ROOT/src/lib/email/"
+    rsync -a "$SAASFAST_AR_ROOT/src/lib/i18n/"    "$ROOT/src/lib/i18n/"
+    rsync -a "$SAASFAST_AR_ROOT/supabase/"        "$ROOT/supabase/"
+    [[ -f "$SAASFAST_AR_ROOT/.env.example" ]] && cp "$SAASFAST_AR_ROOT/.env.example" "$ROOT/.env.example"
+    ;;
+esac
+
+case "$saasfast_mode" in
+  M2|M3)
+    rsync -a "$SAASFAST_AR_ROOT/src/app/(auth)/"      "$ROOT/src/app/(auth)/"
+    rsync -a "$SAASFAST_AR_ROOT/src/app/(marketing)/" "$ROOT/src/app/(marketing)/"
+    [[ -f "$SAASFAST_AR_ROOT/src/app/(dashboard)/_layout.tsx" ]] && \
+      cp "$SAASFAST_AR_ROOT/src/app/(dashboard)/_layout.tsx" "$ROOT/src/app/(dashboard)/_layout.tsx"
+    ;;
+esac
+
+case "$saasfast_mode" in
+  M3)
+    rsync -a "$SAASFAST_AR_ROOT/src/app/(dashboard)/"  "$ROOT/src/app/(dashboard)/"
+    rsync -a "$SAASFAST_AR_ROOT/src/components/ui/"    "$ROOT/src/components/ui/"
+    rsync -a "$SAASFAST_AR_ROOT/src/components/layout/" "$ROOT/src/components/layout/"
+    ;;
+esac
+```
+
+#### 4a.4 — Rebrand hardcoded SaaSfast-ar references in COPIED files only
+
+```bash
+# Only operate on files we just copied. Use grep to find candidates first.
+SAASFAST_AR_SLUG=$(basename "$SAASFAST_AR_ROOT")  # usually "SaaSfast-ar"
+
+find "$ROOT/src" "$ROOT/supabase" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.sql" -o -name "*.json" \) 2>/dev/null \
+  | xargs sed -i.bak \
+    -e "s|SaaSfast-ar|$project_slug|g" \
+    -e "s|SaaSfast|$project_name|g" \
+  2>/dev/null
+find "$ROOT/src" "$ROOT/supabase" -type f -name "*.bak" -delete
+```
+
+Founder can hand-edit further; this is a one-time best-effort rebrand.
+
+#### 4a.5 — Verify SaaSfast-ar source untouched
+
+```bash
+SAASFAST_AR_AFTER_CHECKSUM=$(git -C "$SAASFAST_AR_ROOT" status --porcelain | wc -l)
+if [[ "$SAASFAST_AR_AFTER_CHECKSUM" != "$SAASFAST_AR_BEFORE_CHECKSUM" ]]; then
+  echo "❌ INVARIANT VIOLATED: SaaSfast-ar source modified during extraction. ROLLING BACK."
+  rm -rf "$ROOT/src/lib/supabase" "$ROOT/src/lib/payment" "$ROOT/src/lib/email" "$ROOT/src/lib/i18n" "$ROOT/supabase"
+  exit 1
+fi
+```
+
+#### 4a.6 — Record evidence (founder-facing)
+
+Add to bootstrap evidence table:
+
+```
+Cloned SaaSfast-ar v$SAASFAST_AR_SHA → $N files extracted under mode $saasfast_mode
+SaaSfast-ar source unchanged (checksum match: ✓)
+Rebrand applied: SaaSfast → $project_name in $M files
+```
+
+**Anti-pattern:** never run `cd SaaSfast-ar && git pull` to "pick up upstream changes." The subset is COPIED at bootstrap time and is now founder-owned. SaaSfast-ar updates apply only to NEW projects bootstrapped after the update.
+
+After 4a + 4b, **Step 6** (autonomous /eo-github push, see eo-github SKILL.md) pushes everything (scaffold + SaaSfast subset + EO layer) to the founder's GitHub repo.
+
 ### Step 4 — Scaffold src/ per SaaSfast mode + tech stack
 
 **Inputs (v1.4.3+):** the **`BrainStructure`** JSON object produced by `eo-brain-ingester/parse.py` at `eo-dev-start` Step 7a, plus the `answers.json` map of founder responses to blocking questions from Step 7c. Read fields directly from these objects — DO NOT re-parse the EO-Brain folder. The ingester is the single source of truth.

@@ -413,18 +413,37 @@ Approve? (y/n)
 
 On `n` → exit cleanly, no writes. On `y` → proceed to Step 9b.
 
-### Step 9b — GitHub intent (one question, four options)
+### Step 9b — GitHub intent (CONDITIONAL on saasfast_used since v1.4.6)
 
-Before handover-bridge runs, determine whether the bootstrap will include a GitHub remote. The skill never silently creates or assumes a remote.
+Before handover-bridge runs, determine whether the bootstrap will include a GitHub remote.
 
-**Precheck:**
+**v1.4.6 conditional logic** — read the founder's `saasfast_used` answer from Step 7c (parser questions[]):
+
+```
+if saasfast_used == "yes":
+  # GitHub is MANDATORY — SaaSfast-ar must be cloned to founder's repo.
+  # Without GitHub at start, the cloned subset has no upstream destination.
+  # Skip the 4-option question entirely.
+  github_intent = "create"
+  Print to founder:
+    "🔗 SaaSfast=yes → GitHub repo required at start.
+     SaaSfast-ar will be cloned + the right subset extracted into your repo.
+     I'll create a private repo via /eo-github create."
+  proceed to Step 10 (handover-bridge invocation, then auto-route to /eo-github)
+
+if saasfast_used == "no":
+  # Traditional 4-option flow — local-only allowed
+  proceed to the precheck + 4-option question below
+```
+
+**Precheck (only when saasfast_used == "no"):**
 ```
 git config --get remote.origin.url 2>/dev/null
 ```
 
 If the output is non-empty → the student already wired a remote. Skip this step, record `github_intent=already-wired` for handover-bridge, proceed to Step 10.
 
-If output is empty → ask one question:
+If output is empty AND saasfast_used == "no" → ask one question:
 
 ```
 📍 No GitHub remote mounted yet. How do you want to handle GitHub?

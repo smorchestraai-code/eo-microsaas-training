@@ -999,6 +999,27 @@ def ingest(eo_brain):
     warnings = []
     questions = []  # blocking gaps that need founder input before scaffold
 
+    # ─── v1.4.6: SaaSfast yes/no question ALWAYS fires, ALWAYS first ─────
+    # This regressed in v1.4.3 when Step 7 was rewritten to use parse.py;
+    # the markdown Step 8a still describes it but it wasn't in the
+    # questions[] array, so Claude's iteration over questions[] never
+    # surfaced it to the founder. v1.4.6 makes this question the FIRST
+    # blocking item every founder sees in plan-mode preview.
+    questions.append({
+        "key": "saasfast_used",
+        "blocking": True,
+        "prompt": (
+            "🧰 Will this project use SaaSfast (the EO MicroSaaS starter kit)?\n"
+            "  yes — clone SaaSfast-ar to your project repo, pull in the right "
+            "subset (auth/payment/landing/dashboard) for your BRD. "
+            "GitHub repo will be created at start.\n"
+            "  no  — fully custom build, no SaaSfast pieces. "
+            "GitHub stays optional (4-option question follows)."
+        ),
+        "default_suggestion": "yes",
+        "default_source": "Weekend MVP default — most projects benefit from SaaSfast",
+    })
+
     # Read BRD raw text once for use by language detector + identity ICP fallback
     brd_path = os.path.join(eo_brain, "4-Architecture", "brd.md")
     brd_text_raw = read_text(brd_path)
